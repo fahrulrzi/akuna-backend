@@ -42,7 +42,6 @@ _Empowering Healthcare System with Seamless Technology Integration_
 
 </div>
 
----
 
 ## Fitur Utama
 
