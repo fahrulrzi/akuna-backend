@@ -80,8 +80,8 @@ Pastikan Anda sudah menginstall perangkat lunak berikut di mesin Anda:
 ### 2\. Clone Repository
 
 ```bash
-git clone https://github.com/your-username/your-repo-name.git
-cd your-repo-name
+git clone https://github.com/fahrulrzi/akuna-backend.git
+cd akuna-backend
 ```
 
 ### 3\. Install Dependensi
