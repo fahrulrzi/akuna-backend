@@ -3,6 +3,7 @@ import express from 'express';
 import type { Application, Request, Response } from 'express';
 import { config } from './config/index.js';
 import { connectDB } from './config/database.js';
+import cors from 'cors';
 
 // Import Routes
 import authRoutes from './routes/auth.routes.js';
@@ -10,6 +11,8 @@ import userRoutes from './routes/user.routes.js';
 
 const app: Application = express();
 const PORT = config.port;
+
+app.use(cors({origin: '*'}));
 
 // Middlewares
 app.use(express.json()); // Untuk parsing body JSON
