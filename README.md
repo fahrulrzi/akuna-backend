@@ -1,7 +1,7 @@
 <h1 align="center">Akuna Backend</h1>
 
 <div align="center">
-  <img src="./uploads/Logo sakinah.png" alt="Akuna Logo" width="200"/>
+  <img src="./uploads/jockowi.jpg" alt="Akuna Logo" width="200"/>
   <p><em>Akuna</em></p>
 </div>
 
