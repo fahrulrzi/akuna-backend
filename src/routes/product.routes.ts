@@ -10,11 +10,11 @@ import {
 
 const router = Router();
 
-router.post("/add-product", isAuthenticated, /* isAdmin, */ addProduct);
-router.get("/products", addProduct);
-router.get("/products-category/:id", getProductsByCategory);
-router.get("/products/:id", getProductById);
-router.put("/products/:id", isAuthenticated, /* isAdmin, */ updateProduct);
-router.delete("/products/:id", isAuthenticated, /* isAdmin, */ deleteProduct);
+router.post("/", isAuthenticated, /* isAdmin, */ addProduct);
+router.get("/", addProduct);
+router.get("/category/:id", getProductsByCategory);
+router.get("/:id", getProductById);
+router.put("/id", isAuthenticated, /* isAdmin, */ updateProduct);
+router.delete("/:id", isAuthenticated, /* isAdmin, */ deleteProduct);
 
 export default router;

@@ -12,21 +12,21 @@ import { isAuthenticated } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
-router.post("/categories", isAuthenticated, /* isAdmin, */ addCategory);
+// menambah kategori baru, hanya admin yang bisa
+router.post("/", isAuthenticated, /* isAdmin, */ addCategory);
 
-router.get("/categories", getCategories);
-router.get("/categories/:id", getCategoryById);
-router.get("/categories/:name", getCategoryByName);
+// get all categories
+router.get("/", getCategories);
+router.get("/:id", getCategoryById);
+router.get("/name/:name", getCategoryByName);
 
-router.put("/categories/:name", isAuthenticated, /* isAdmin, */ updateCategory);
+// update category by id, hanya admin yang bisa
+router.put("/:id", isAuthenticated, /* isAdmin, */ updateCategory);
 
-router.delete(
-  "/categories/:name",
-  isAuthenticated,
-  /* isAdmin, */ deleteCategory
-);
+// delete category by id, hanya admin yang bisa
+router.delete("/:id", isAuthenticated, /* isAdmin, */ deleteCategory);
 
 // get products by category id
-router.get("/categories/:id/products", getProductsByCategoryId);
+router.get("/:id/products", getProductsByCategoryId);
 
 export default router;
