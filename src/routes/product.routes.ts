@@ -13,7 +13,7 @@ const router = Router();
 
 router.post("/", isAuthenticated, /* isAdmin, */ addProduct);
 router.get("/", getProducts);
-router.get("/category/:id", getProductsByCategory);
+router.get("/category/:categoryId", getProductsByCategory);
 router.get("/:id", getProductById);
 router.put("/id", isAuthenticated, /* isAdmin, */ updateProduct);
 router.delete("/:id", isAuthenticated, /* isAdmin, */ deleteProduct);
