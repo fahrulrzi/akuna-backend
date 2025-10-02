@@ -50,9 +50,9 @@ export class User extends Model {
 
     @Column({
         type: DataType.TEXT,
-        allowNull: false,
+        allowNull: true,
     })
-    alamat!: string;
+    address?: string | null;
 
     // Hook untuk hash password sebelum user dibuat
     @BeforeCreate
