@@ -42,7 +42,6 @@ _Empowering Healthcare System with Seamless Technology Integration_
 
 </div>
 
-
 ## Fitur Utama
 
 - **Autentikasi Pengguna**: Sistem registrasi dan login yang aman menggunakan JWT (JSON Web Tokens).
@@ -253,3 +252,5 @@ src/
 ├── routes/         # Definisi endpoint API
 └── index.ts        # Entry point aplikasi Express
 ```
+
+# Lanjutan Dokumentasi Sementara Di Postman Yang Dikirim Di WAG
