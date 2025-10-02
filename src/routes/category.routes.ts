@@ -28,3 +28,5 @@ router.delete(
 
 // get products by category id
 router.get("/categories/:id/products", getProductsByCategoryId);
+
+export default router;
