@@ -3,7 +3,6 @@ import { Product } from "../models/Product.js";
 
 export const addProduct = async (req: Request, res: Response) => {
   const { name, categoryId, description, price, image, stock } = req.body;
-
   try {
     // Masukkan product baru
     const newProduct = await Product.create({

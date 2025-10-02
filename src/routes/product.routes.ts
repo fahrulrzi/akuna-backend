@@ -4,6 +4,7 @@ import {
   addProduct,
   deleteProduct,
   getProductById,
+  getProducts,
   getProductsByCategory,
   updateProduct,
 } from "../controllers/product.controller.js";
@@ -11,7 +12,7 @@ import {
 const router = Router();
 
 router.post("/", isAuthenticated, /* isAdmin, */ addProduct);
-router.get("/", addProduct);
+router.get("/", getProducts);
 router.get("/category/:id", getProductsByCategory);
 router.get("/:id", getProductById);
 router.put("/id", isAuthenticated, /* isAdmin, */ updateProduct);
