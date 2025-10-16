@@ -6,12 +6,26 @@ import { Category } from "../models/Category.js";
 
 export const addProduct = async (req: Request, res: Response) => {
   try {
-    const { name, categoryId, description, price, stock } = req.body;
-    const files = req.files as any[];
+    // Destructure setelah validasi
+    const { name, categoryId, description, price, stock } = req.body || {};
+    const files = req.files as Express.Multer.File[];
+
+    // Validasi field wajib
     if (!name || !categoryId || !price) {
       return res.status(400).json({
         success: false,
         message: "Name, categoryId, and price are required.",
+        data: null,
+      });
+    }
+
+    const category = await Category.findByPk(categoryId);
+
+    if (!category) {
+      return res.status(400).json({
+        success: false,
+        message: "Kategori tidak ditemukan.",
+        data: null,
       });
     }
 
@@ -27,13 +41,12 @@ export const addProduct = async (req: Request, res: Response) => {
       imageKeys = uploadResults.map((result) => result.key);
     }
 
-    // Buat product baru
     const newProduct = await Product.create({
-      name: name,
-      categoryId: categoryId,
+      name,
+      categoryId: parseInt(categoryId),
       description: description || "",
-      price: price,
-      stock: stock || 0,
+      price: parseFloat(price),
+      stock: stock ? parseInt(stock) : 0,
       images: imageUrls,
       imageKeys: imageKeys,
     });
@@ -44,10 +57,11 @@ export const addProduct = async (req: Request, res: Response) => {
       data: newProduct,
     });
   } catch (error) {
+    console.error("Error in addProduct:", error);
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server.",
-      data: process.env.NODE_ENV === "development" ? error : undefined, //janlup ganti pas udah mau di deploy
+      data: process.env.NODE_ENV === "development" ? error : undefined,
     });
   }
 };
@@ -112,6 +126,14 @@ export const getProductsByCategory = async (req: Request, res: Response) => {
       include: ["category"],
     });
 
+    if (products.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Tidak ada produk ditemukan untuk kategori ini.",
+        data: null,
+      });
+    }
+
     res.status(200).json({
       success: true,
       message: "Data produk berhasil diambil.",
@@ -139,6 +161,16 @@ export const updateProduct = async (req: Request, res: Response) => {
       return res.status(404).json({
         success: false,
         message: "Produk tidak ditemukan.",
+        data: null,
+      });
+    }
+
+    const category = await Category.findByPk(categoryId);
+
+    if (!category) {
+      return res.status(400).json({
+        success: false,
+        message: "Kategori tidak ditemukan.",
         data: null,
       });
     }

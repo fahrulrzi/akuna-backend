@@ -1,9 +1,9 @@
-import 'reflect-metadata'; // Wajib diimport di paling atas
-import express from 'express';
-import type { Application, Request, Response } from 'express';
-import { config } from './config/index.js';
-import { connectDB } from './config/database.js';
-import cors from 'cors';
+import "reflect-metadata"; // Wajib diimport di paling atas
+import express from "express";
+import type { Application, Request, Response } from "express";
+import { config } from "./config/index.js";
+import { connectDB } from "./config/database.js";
+import cors from "cors";
 
 // Import Routes
 import authRoutes from './routes/auth.routes.js';
@@ -12,16 +12,19 @@ import categoryRoutes from './routes/category.routes.js';
 import productRoutes from './routes/product.routes.js';
 import deliveryRoutes from './routes/delivery.routes.js';
 
-const app: Application = express();
-const PORT = config.port;
+const startServer = async () => {
+  try {
+    const app: Application = express();
+    const PORT = config.port;
 
-app.use(cors({origin: '*'}));
+    app.use(cors({ origin: "*" }));
 
-// Middlewares
-app.use(express.json()); // Untuk parsing body JSON
+    // Middlewares
+    app.use(express.json()); // Untuk parsing body JSON
+    app.use(express.urlencoded({ extended: true }));
 
-// Database Connection
-connectDB();
+    // Database Connection
+    connectDB();
 
 // Routes
 app.get('/', (req: Request, res: Response) => {
@@ -33,8 +36,15 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/delivery', deliveryRoutes);
 
+    // Start Server
+    app.listen(PORT, () => {
+      console.log(`Server is running on http://localhost:${PORT} 🚀`);
+    });
+  } catch (error) {
+    console.error("💥 Failed to start the server. Error details:");
+    console.error(error);
+    process.exit(1); 
+  }
+};
 
-// Start Server
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT} 🚀`);
-});
+startServer();

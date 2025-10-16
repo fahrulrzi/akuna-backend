@@ -10,21 +10,23 @@ interface ResetTokenRequest {
 }
 
 export const register = async (req: Request, res: Response) => {
-  const { name, email, password, alamat } = req.body;
+  const { name, email, password, address } = req.body;
 
   try {
     // Cek apakah email sudah terdaftar
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       return res.status(400).json({
-        successs: false,
+        success: false,
         message: "Email sudah terdaftar.",
         data: null,
       });
     }
 
-    // Buat user baru (password akan di-hash oleh hook di model)
-    const newUser = await User.create({ name, email, password });
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const newUser = await User.create({ name, email, password: hashedPassword, address });
 
     res.status(201).json({
       success: true,
@@ -34,6 +36,8 @@ export const register = async (req: Request, res: Response) => {
           id: newUser.id,
           name: newUser.name,
           email: newUser.email,
+          role: newUser.role,
+          address: newUser.address,
         },
       },
     });
@@ -41,7 +45,7 @@ export const register = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server.",
-      data: config.nodeEnv === "development" ? error : undefined, //janlup ganti pas udah mau di deploy
+      data: config.nodeEnv === "development" ? error : undefined,
     });
   }
 };
@@ -52,6 +56,7 @@ export const login = async (req: Request, res: Response) => {
   try {
     // Cari user berdasarkan email
     const user = await User.findOne({ where: { email } });
+    
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -60,8 +65,8 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    // Membandingkan password
-    const isMatch = await user.comparePassword(password);
+    const isMatch = await bcrypt.compare(password, user.password);
+    
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -74,7 +79,7 @@ export const login = async (req: Request, res: Response) => {
     const token = jwt.sign(
       { id: user.id, role: user.role },
       config.jwt.secret,
-      { expiresIn: "1d" } // Token berlaku 1 hari
+      { expiresIn: "1d" }
     );
 
     res.status(200).json({
@@ -94,7 +99,7 @@ export const login = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server.",
-      data: config.nodeEnv === "development" ? error : undefined, //janlup ganti pas udah mau di deploy
+      data: config.nodeEnv === "development" ? error : undefined,
     });
   }
 };

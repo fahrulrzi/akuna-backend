@@ -11,22 +11,29 @@ export class Category extends Model {
     primaryKey: true,
     autoIncrement: true,
   })
-  id!: number;
+  declare id: number;
 
   @Column({
     type: DataType.STRING,
     allowNull: false,
     unique: true,
   })
-  name!: string;
+  declare name: string;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: false,
+    unique: true,
+  })
+  declare slug: string;
 
   @Column({
     type: DataType.STRING,
     allowNull: false,
   })
-  description!: string;
+  declare description: string;
 
-  // Relasi one-to-many dengan Product
-  @HasMany(() => Product)
+  @HasMany(() => Product, "categoryId")
   products!: Product[];
 }
+

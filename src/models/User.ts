@@ -17,13 +17,13 @@ export class User extends Model {
         primaryKey: true,
         autoIncrement: true,
     })
-    id!: number;
+    declare id: number;
 
     @Column({
         type: DataType.STRING,
         allowNull: false,
     })
-    name!: string;
+    declare name: string;
 
     @Column({
         type: DataType.STRING,
@@ -33,26 +33,26 @@ export class User extends Model {
             isEmail: true,
         },
     })
-    email!: string;
+    declare email: string;
 
     @Column({
         type: DataType.STRING,
         allowNull: false,
     })
-    password!: string;
+    declare password: string;
 
     @Column({
         type: DataType.ENUM(...Object.values(UserRole)),
         allowNull: false,
         defaultValue: UserRole.BUYER, // Default role saat register
     })
-    role!: UserRole;
+    declare role: UserRole;
 
     @Column({
         type: DataType.TEXT,
         allowNull: true,
     })
-    address?: string | null;
+    declare address?: string | null;
 
     // Hook untuk hash password sebelum user dibuat
     @BeforeCreate

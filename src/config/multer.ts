@@ -1,17 +1,12 @@
-// src/config/multer.ts
 import multer from 'multer';
 
-// Gunakan memory storage agar file tersimpan di buffer (RAM)
-// Ini diperlukan karena kita akan upload ke R2 atau save ke disk secara manual
 const storage = multer.memoryStorage();
 
-// Filter untuk validasi tipe file
 const fileFilter = (
   req: Express.Request,
   file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ) => {
-  // Hanya terima file gambar
   const allowedMimeTypes = [
     'image/jpeg',
     'image/jpg',
@@ -21,10 +16,8 @@ const fileFilter = (
   ];
 
   if (allowedMimeTypes.includes(file.mimetype)) {
-    // File valid
     cb(null, true);
   } else {
-    // File tidak valid
     cb(new Error('Invalid file type. Only JPEG, PNG, WEBP, and GIF are allowed.'));
   }
 };

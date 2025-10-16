@@ -1,4 +1,3 @@
-// src/models/Product.ts
 import {
   Table,
   Column,
@@ -19,54 +18,55 @@ export class Product extends Model {
     primaryKey: true,
     autoIncrement: true,
   })
-  id!: number;
+  declare id: number;
 
   @Column({
     type: DataType.STRING,
     allowNull: false,
   })
-  name!: string;
+  declare name: string;
 
   @Column({
     type: DataType.TEXT,
-    allowNull: true, 
+    allowNull: true,
   })
-  description!: string;
+  declare description: string;
 
   @Column({
-    type: DataType.DECIMAL(10, 2), 
+    type: DataType.DECIMAL(10, 2),
     allowNull: false,
   })
-  price!: number;
-
-  @Column({
-    type: DataType.JSON, 
-    allowNull: false,
-    defaultValue: [], 
-  })
-  images!: string[];
+  declare price: number;
 
   @Column({
     type: DataType.JSON,
     allowNull: false,
-    defaultValue: [], 
+    defaultValue: "[]", // Default value untuk JSON sebaiknya string
   })
-  imageKeys!: string[];
+  declare images: string[];
+
+  @Column({
+    type: DataType.JSON,
+    allowNull: false,
+    defaultValue: "[]", // Default value untuk JSON sebaiknya string
+  })
+  declare imageKeys: string[];
 
   @Column({
     type: DataType.INTEGER,
     allowNull: false,
     defaultValue: 0,
   })
-  stock!: number;
+  declare stock: number;
 
   @ForeignKey(() => Category)
   @Column({
     type: DataType.INTEGER,
     allowNull: false,
   })
-  categoryId!: number;
+  declare categoryId: number;
 
-  @BelongsTo(() => Category)
-  category?: Category;
+  @BelongsTo(() => Category, "categoryId")
+  category!: Category;
 }
+

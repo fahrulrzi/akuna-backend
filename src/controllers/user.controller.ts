@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
-import { User, UserRole } from "../models/User.js";
 import { config } from "../config/index.js";
+import { User, UserRole } from "../models/User.js";
 
 // Extend Request type untuk menyertakan user dari middleware
 interface AuthRequest extends Request {

@@ -1,8 +1,10 @@
 import type { Request, Response } from "express";
+import { config } from "../config/index.js";
+import slugify from "slugify";
 import { Category } from "../models/Category.js";
 
 export const addCategory = async (req: Request, res: Response) => {
-  const { name, description } = req.body;
+  const { name, slug, description } = req.body;
 
   try {
     // Cek apakah nama kategori sudah ada
@@ -15,8 +17,27 @@ export const addCategory = async (req: Request, res: Response) => {
       });
     }
 
+    const generatedSlug = slug
+      ? slugify.default(slug, { lower: true, strict: true })
+      : slugify.default(name, { lower: true, strict: true });
+
+    const existingSlug = await Category.findOne({
+      where: { slug: generatedSlug },
+    });
+    if (existingSlug) {
+      return res.status(400).json({
+        success: false,
+        message: "Slug kategori sudah ada. Gunakan nama yang berbeda.",
+        data: null,
+      });
+    }
+
     // Buat kategori baru
-    const newCategory = await Category.create({ name, description });
+    const newCategory = await Category.create({
+      name,
+      slug: generatedSlug,
+      description,
+    });
 
     res.status(201).json({
       success: true,
@@ -27,7 +48,7 @@ export const addCategory = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server.",
-      data: error, //janlup ganti pas udah mau di deploy
+      data: config.nodeEnv === "development" ? error : undefined, //janlup ganti pas udah mau di deploy
     });
   }
 };
@@ -45,7 +66,7 @@ export const getCategories = async (_req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server.",
-      data: error, //janlup ganti pas udah mau di deploy
+      data: config.nodeEnv === "development" ? error : undefined, //janlup ganti pas udah mau di deploy
     });
   }
 };
@@ -73,7 +94,7 @@ export const getCategoryByName = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server.",
-      data: error, //janlup ganti pas udah mau di deploy
+      data: config.nodeEnv === "development" ? error : undefined, //janlup ganti pas udah mau di deploy
     });
   }
 };
@@ -103,14 +124,14 @@ export const deleteCategory = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server.",
-      data: error, //janlup ganti pas udah mau di deploy
+      data: config.nodeEnv === "development" ? error : undefined, //janlup ganti pas udah mau di deploy
     });
   }
 };
 
 export const updateCategory = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { name, description } = req.body;
+  const { name, slug, description } = req.body;
 
   try {
     const category = await Category.findByPk(id);
@@ -135,8 +156,18 @@ export const updateCategory = async (req: Request, res: Response) => {
       }
     }
 
+    let generatedSlug = "";
+
+    // buat slug otomatis
+    if (!slug) {
+      generatedSlug = slug
+        ? slugify.default(slug, { lower: true, strict: true })
+        : slugify.default(name, { lower: true, strict: true });
+    }
+
     // Update kategori
     category.name = name || category.name;
+    category.slug = generatedSlug || category.slug;
     category.description = description || category.description;
 
     await category.save();
@@ -150,7 +181,7 @@ export const updateCategory = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server.",
-      data: error, //janlup ganti pas udah mau di deploy
+      data: config.nodeEnv === "development" ? error : undefined, //janlup ganti pas udah mau di deploy
     });
   }
 };
@@ -178,12 +209,15 @@ export const getCategoryById = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server.",
-      data: error, //janlup ganti pas udah mau di deploy
+      data: config.nodeEnv === "development" ? error : undefined, //janlup ganti pas udah mau di deploy
     });
   }
 };
 
-export const getCategoriesWithProducts = async (_req: Request, res: Response) => {
+export const getCategoriesWithProducts = async (
+  _req: Request,
+  res: Response
+) => {
   try {
     const categories = await Category.findAll({
       include: ["products"], // Asumsikan relasi sudah didefinisikan di model
@@ -198,7 +232,7 @@ export const getCategoriesWithProducts = async (_req: Request, res: Response) =>
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server.",
-      data: error, //janlup ganti pas udah mau di deploy
+      data: config.nodeEnv === "development" ? error : undefined, //janlup ganti pas udah mau di deploy
     });
   }
 };
@@ -228,7 +262,7 @@ export const getProductsByCategoryId = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server.",
-      data: error, //janlup ganti pas udah mau di deploy
+      data: config.nodeEnv === "development" ? error : undefined, //janlup ganti pas udah mau di deploy
     });
   }
 };
