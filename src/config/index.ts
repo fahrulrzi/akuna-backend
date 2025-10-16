@@ -10,6 +10,7 @@ if (!jwtSecret) {
 }
 
 export const config = {
+  nodeEnv: process.env.NODE_ENV || "development",
   port: process.env.PORT || 3000,
   clientUrl: process.env.CLIENT_URL || "http://localhost:3000",
   db: {
@@ -32,5 +33,17 @@ export const config = {
   biteship: {
     apiKey: process.env.BITESHIP_API_KEY,
     baseUrl: process.env.BITESHIP_BASE_URL || "https://api.biteship.com",
+  },
+  objectStorage: {
+    type: (process.env.STORAGE_TYPE as "local" | "r2") || "local",
+    localPath: process.env.LOCAL_STORAGE_PATH || "uploads",
+    baseUrl: process.env.BASE_URL || "http://localhost:3000",
+    r2: {
+      accountId: process.env.R2_ACCOUNT_ID || "",
+      accessKeyId: process.env.R2_ACCESS_KEY_ID || "",
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || "",
+      bucketName: process.env.R2_BUCKET_NAME || "",
+      publicUrl: process.env.R2_PUBLIC_URL || "",
+    },
   },
 };

@@ -1,17 +1,41 @@
 import type { Request, Response } from "express";
 import { Product } from "../models/Product.js";
+import { storageService } from "../services/storage.service.js";
+import { config } from "../config/index.js";
+import { Category } from "../models/Category.js";
 
 export const addProduct = async (req: Request, res: Response) => {
-  const { name, categoryId, description, price, image, stock } = req.body;
   try {
-    // Masukkan product baru
+    const { name, categoryId, description, price, stock } = req.body;
+    const files = req.files as any[];
+    if (!name || !categoryId || !price) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, categoryId, and price are required.",
+      });
+    }
+
+    let imageUrls: string[] = [];
+    let imageKeys: string[] = [];
+
+    if (files && files.length > 0) {
+      const uploadResults = await storageService.uploadMultiple(
+        files,
+        "products"
+      );
+      imageUrls = uploadResults.map((result) => result.url);
+      imageKeys = uploadResults.map((result) => result.key);
+    }
+
+    // Buat product baru
     const newProduct = await Product.create({
-      name,
-      categoryId,
-      description,
-      price,
-      image,
-      stock,
+      name: name,
+      categoryId: categoryId,
+      description: description || "",
+      price: price,
+      stock: stock || 0,
+      images: imageUrls,
+      imageKeys: imageKeys,
     });
 
     res.status(201).json({
@@ -23,14 +47,17 @@ export const addProduct = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server.",
-      data: error, //janlup ganti pas udah mau di deploy
+      data: process.env.NODE_ENV === "development" ? error : undefined, //janlup ganti pas udah mau di deploy
     });
   }
 };
 
 export const getProducts = async (_req: Request, res: Response) => {
   try {
-    const products = await Product.findAll();
+    const products = await Product.findAll({
+      include: ["category"],
+      order: [["createdAt", "DESC"]],
+    });
 
     res.status(200).json({
       success: true,
@@ -41,7 +68,7 @@ export const getProducts = async (_req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server.",
-      data: error, //janlup ganti pas udah mau di deploy
+      data: config.nodeEnv === "development" ? error : undefined, //janlup ganti pas udah mau di deploy
     });
   }
 };
@@ -50,7 +77,9 @@ export const getProductById = async (req: Request, res: Response) => {
   const { id } = req.params;
 
   try {
-    const product = await Product.findByPk(id);
+    const product = await Product.findByPk(id, {
+      include: ["category"],
+    });
 
     if (!product) {
       return res.status(404).json({
@@ -69,7 +98,7 @@ export const getProductById = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server.",
-      data: error, //janlup ganti pas udah mau di deploy
+      data: config.nodeEnv === "development" ? error : undefined, //janlup ganti pas udah mau di deploy
     });
   }
 };
@@ -78,7 +107,10 @@ export const getProductsByCategory = async (req: Request, res: Response) => {
   const { categoryId } = req.params;
 
   try {
-    const products = await Product.findAll({ where: { categoryId } });
+    const products = await Product.findAll({
+      where: { categoryId },
+      include: ["category"],
+    });
 
     res.status(200).json({
       success: true,
@@ -89,16 +121,18 @@ export const getProductsByCategory = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server.",
-      data: error, //janlup ganti pas udah mau di deploy
+      data: config.nodeEnv === "development" ? error : undefined, //janlup ganti pas udah mau di deploy
     });
   }
 };
 
 export const updateProduct = async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { name, categoryId, description, price, image, stock } = req.body;
-
   try {
+    const { id } = req.params;
+    const { name, categoryId, description, price, stock, deleteImages } =
+      req.body;
+    const files = req.files as any[];
+
     const product = await Product.findByPk(id);
 
     if (!product) {
@@ -109,15 +143,62 @@ export const updateProduct = async (req: Request, res: Response) => {
       });
     }
 
-    // Update product
-    product.name = name || product.name;
-    product.categoryId = categoryId || product.categoryId;
-    product.description = description || product.description;
-    product.price = price || product.price;
-    product.image = image || product.image;
-    product.stock = stock || product.stock;
+    let currentImages = product.images || [];
+    let currentImageKeys = product.imageKeys || [];
 
-    await product.save();
+    // Handle new image uploads
+    if (deleteImages) {
+      try {
+        const deleteIndices = JSON.parse(deleteImages);
+
+        if (Array.isArray(deleteIndices) && deleteIndices.length > 0) {
+          const keysToDelete = deleteIndices
+            .map((idx: number) => currentImageKeys[idx])
+            .filter(Boolean);
+
+          if (keysToDelete.length > 0) {
+            await storageService.deleteMultiple(
+              keysToDelete.filter(
+                (key): key is string => typeof key === "string"
+              )
+            );
+          }
+
+          currentImages = currentImages.filter(
+            (_: any, idx: number) => !deleteIndices.includes(idx)
+          );
+          currentImageKeys = currentImageKeys.filter(
+            (_: any, idx: number) => !deleteIndices.includes(idx)
+          );
+        }
+      } catch (parseError) {
+        console.error("Error parsing deleteImages:", parseError);
+      }
+    }
+
+    if (files && files.length > 0) {
+      const uploadResults = await storageService.uploadMultiple(
+        files,
+        "products"
+      );
+      currentImages.push(...uploadResults.map((result) => result.url));
+      currentImageKeys.push(...uploadResults.map((result) => result.key));
+    }
+
+    // Update product
+    await product.update({
+      name: name || product.name,
+      categoryId: categoryId ? parseInt(categoryId) : product.categoryId,
+      description:
+        description !== undefined ? description : product.description,
+      price: price ? parseFloat(price) : product.price,
+      stock: stock !== undefined ? parseInt(stock) : product.stock,
+      images: currentImages,
+      imageKeys: currentImageKeys,
+    });
+
+    // Reload to get updated associations
+    await product.reload({ include: [Category] });
 
     res.status(200).json({
       success: true,
@@ -128,15 +209,14 @@ export const updateProduct = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server.",
-      data: error, //janlup ganti pas udah mau di deploy
+      data: config.nodeEnv === "development" ? error : undefined,
     });
   }
 };
 
 export const deleteProduct = async (req: Request, res: Response) => {
-  const { id } = req.params;
-
   try {
+    const { id } = req.params;
     const product = await Product.findByPk(id);
 
     if (!product) {
@@ -145,6 +225,11 @@ export const deleteProduct = async (req: Request, res: Response) => {
         message: "Produk tidak ditemukan.",
         data: null,
       });
+    }
+
+    // Menghapus gambar dari storage jika ada
+    if (product.imageKeys && product.imageKeys.length > 0) {
+      await storageService.deleteMultiple(product.imageKeys);
     }
 
     await product.destroy();
@@ -158,7 +243,7 @@ export const deleteProduct = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server.",
-      data: error, //janlup ganti pas udah mau di deploy
+      data: config.nodeEnv === "development" ? error : undefined, //janlup ganti pas udah mau di deploy
     });
   }
 };

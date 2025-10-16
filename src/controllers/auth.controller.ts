@@ -5,6 +5,10 @@ import { config } from "../config/index.js";
 import bcrypt from "bcrypt";
 import { sendEmail } from "../utils/email.js";
 
+interface ResetTokenRequest {
+  id: number;
+}
+
 export const register = async (req: Request, res: Response) => {
   const { name, email, password, alamat } = req.body;
 
@@ -12,21 +16,32 @@ export const register = async (req: Request, res: Response) => {
     // Cek apakah email sudah terdaftar
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
-      return res.status(400).json({ message: "Email sudah terdaftar." });
+      return res.status(400).json({
+        successs: false,
+        message: "Email sudah terdaftar.",
+        data: null,
+      });
     }
 
     // Buat user baru (password akan di-hash oleh hook di model)
     const newUser = await User.create({ name, email, password });
 
     res.status(201).json({
+      success: true,
       message: "Registrasi berhasil!",
-      user: { id: newUser.id, name: newUser.name, email: newUser.email },
+      data: {
+        user: {
+          id: newUser.id,
+          name: newUser.name,
+          email: newUser.email,
+        },
+      },
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server.",
-      data: error, //janlup ganti pas udah mau di deploy
+      data: config.nodeEnv === "development" ? error : undefined, //janlup ganti pas udah mau di deploy
     });
   }
 };
@@ -38,13 +53,21 @@ export const login = async (req: Request, res: Response) => {
     // Cari user berdasarkan email
     const user = await User.findOne({ where: { email } });
     if (!user) {
-      return res.status(404).json({ message: "Email atau password salah." });
+      return res.status(404).json({
+        success: false,
+        message: "Email atau password salah.",
+        data: null,
+      });
     }
 
-    // Bandingkan password
+    // Membandingkan password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({ message: "Email atau password salah." });
+      return res.status(401).json({
+        success: false,
+        message: "Email atau password salah.",
+        data: null,
+      });
     }
 
     // Buat JWT Token
@@ -55,20 +78,23 @@ export const login = async (req: Request, res: Response) => {
     );
 
     res.status(200).json({
+      success: true,
       message: "Login berhasil!",
       token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
+      data: {
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        },
       },
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server.",
-      data: error, //janlup ganti pas udah mau di deploy
+      data: config.nodeEnv === "development" ? error : undefined, //janlup ganti pas udah mau di deploy
     });
   }
 };
@@ -84,6 +110,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
       return res.status(200).json({
         success: true,
         message: "Jika email terdaftar, link reset password akan dikirimkan.",
+        data: null,
       });
     }
 
@@ -109,26 +136,27 @@ export const forgotPassword = async (req: Request, res: Response) => {
     res.status(200).json({
       success: true,
       message: "Jika email terdaftar, link reset password akan dikirimkan.",
+      data: null,
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ success: false, message: "Terjadi kesalahan pada server." });
+    res.status(500).json({
+      success: false,
+      message: "Terjadi kesalahan pada server.",
+      data: config.nodeEnv === "development" ? error : undefined,
+    });
   }
 };
-
-interface ResetTokenRequest {
-  id: number;
-}
 
 export const resetPassword = async (req: Request, res: Response) => {
   const { token } = req.params;
   const { password } = req.body;
 
   if (!token) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Token reset tidak disediakan." });
+    return res.status(400).json({
+      success: false,
+      message: "Token reset tidak disediakan.",
+      data: null,
+    });
   }
 
   try {
@@ -142,6 +170,7 @@ export const resetPassword = async (req: Request, res: Response) => {
       return res.status(401).json({
         success: false,
         message: "Token tidak valid atau kedaluwarsa.",
+        data: null,
       });
     }
 
@@ -152,20 +181,26 @@ export const resetPassword = async (req: Request, res: Response) => {
     const user = await User.findByPk(decoded.id);
 
     if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User tidak ditemukan." });
+      return res.status(404).json({
+        success: false,
+        message: "User tidak ditemukan.",
+        data: null,
+      });
     }
 
     user.password = hashedPassword;
     await user.save();
 
-    res
-      .status(200)
-      .json({ success: true, message: "Password berhasil diubah." });
+    res.status(200).json({
+      success: true,
+      message: "Password berhasil diubah.",
+      data: null,
+    });
   } catch (error) {
-    res
-      .status(401)
-      .json({ success: false, message: "Token tidak valid atau kedaluwarsa." });
+    res.status(401).json({
+      success: false,
+      message: "Token tidak valid atau kedaluwarsa.",
+      data: config.nodeEnv === "development" ? error : undefined,
+    });
   }
 };
