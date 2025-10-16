@@ -23,10 +23,15 @@ export const register = async (req: Request, res: Response) => {
       });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    // const salt = await bcrypt.genSalt(10);
+    // const hashedPassword = await bcrypt.hash(password, salt);
 
-    const newUser = await User.create({ name, email, password: hashedPassword, address });
+    const newUser = await User.create({
+      name: name,
+      email: email,
+      password: password,
+      address: address,
+    });
 
     res.status(201).json({
       success: true,
@@ -56,7 +61,7 @@ export const login = async (req: Request, res: Response) => {
   try {
     // Cari user berdasarkan email
     const user = await User.findOne({ where: { email } });
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -65,8 +70,9 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    
+    // const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await user.comparePassword(password);
+
     if (!isMatch) {
       return res.status(401).json({
         success: false,
