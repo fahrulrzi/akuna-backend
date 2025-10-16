@@ -29,4 +29,8 @@ export const config = {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  biteship: {
+    apiKey: process.env.BITESHIP_API_KEY,
+    baseUrl: process.env.BITESHIP_BASE_URL || "https://api.biteship.com",
+  },
 };
