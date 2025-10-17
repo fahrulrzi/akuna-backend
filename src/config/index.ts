@@ -46,4 +46,9 @@ export const config = {
       publicUrl: process.env.R2_PUBLIC_URL || "",
     },
   },
+  // midtrans: {
+  //   serverKey: process.env.MIDTRANS_SERVER_KEY || "",
+  //   // clientKey: process.env.MIDTRANS_CLIENT_KEY || "",
+  //   isProduction: process.env.NODE_ENV === "production",
+  // },
 };
