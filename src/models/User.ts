@@ -54,6 +54,49 @@ export class User extends Model {
     })
     declare address?: string | null;
 
+    @Column({
+        type: DataType.STRING,
+        allowNull: true,
+    })
+    declare city?: string | null;
+
+    @Column({
+        type: DataType.STRING,
+        allowNull: true,
+    })
+    declare state?: string | null;
+
+    @Column({
+        type: DataType.STRING,
+        allowNull: true,
+    })
+    declare postcode?: string | null;
+
+    @Column({
+        type: DataType.STRING,
+        allowNull: true,
+    })
+    declare country?: string | null;
+
+    @Column({
+        type: DataType.STRING,
+        allowNull: true,
+    })
+    declare phone?: string | null;
+
+    // Address
+    @Column({
+        type: DataType.STRING,
+        allowNull: true,
+    })
+    declare addressFirstName?: string | null;
+
+    @Column({
+        type: DataType.STRING,
+        allowNull: true,
+    })
+    declare addressLastName?: string | null;
+
     // Hook untuk hash password sebelum user dibuat
     @BeforeCreate
     static async hashPassword(instance: User) {
