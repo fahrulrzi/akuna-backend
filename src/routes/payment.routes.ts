@@ -14,7 +14,7 @@ const router = Router();
 router.post("/create", isAuthenticated, createTransaction);
 router.get("/status/:orderId", isAuthenticated, getTransactionStatus);
 router.get("/history", isAuthenticated, getUserTransactions);
-router.post("/cancel/:orderId", isAuthenticated, cancelTransaction);
+router.get("/cancel/:orderId", isAuthenticated, cancelTransaction);
 
 // Webhook from Midtrans (no auth required)
 router.post("/notification", handleNotification);
