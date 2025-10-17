@@ -17,7 +17,6 @@ const generateOrderId = (): string => {
 export const createTransaction = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id; // Dari auth middleware
-    console.log("Authenticated user ID:", userId);
     const { products } = req.body; // Array of { productId, quantity }
 
     if (!products || !Array.isArray(products) || products.length === 0) {
@@ -226,6 +225,8 @@ export const handleNotification = async (req: Request, res: Response) => {
           await product.update({
             stock: product.stock - item.quantity,
           });
+
+          console.log("prodcut sudah di kurangi stocknya", product.name);
         }
       }
     }
