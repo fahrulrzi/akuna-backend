@@ -5,6 +5,8 @@ import bcrypt from 'bcrypt';
 export enum UserRole {
     BUYER = 'pembeli',
     AFFILIATE = 'affiliate',
+    ADMIN = 'admin',
+    OWNER = 'owner',
 }
 
 @Table({

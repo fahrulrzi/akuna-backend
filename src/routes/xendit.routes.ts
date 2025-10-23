@@ -6,12 +6,13 @@ import {
   getXenditBalance,
   handleXenditCallback,
 } from "../controllers/xendit.controller.js";
+import { isOwner } from "../middlewares/owner.middleware.js";
 
 const router = Router();
 
 // Protected routes
 router.post("/create-invoice", isAuthenticated, createXenditInvoice);
-router.get("/balance", isAuthenticated, getXenditBalance);
+router.get("/balance", isAuthenticated, isOwner, getXenditBalance);
 router.get("/invoice/:externalId", isAuthenticated, getInvoiceStatus);
 
 // Webhook from Xendit (no auth, uses callback token)

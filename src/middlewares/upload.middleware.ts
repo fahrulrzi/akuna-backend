@@ -1,14 +1,14 @@
-import multer from 'multer';
+import multer from "multer";
 
 const storage = multer.memoryStorage();
 
 const fileFilter = (req: any, file: Express.Multer.File, cb: any) => {
-  const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-  
+  const allowedMimes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+
   if (allowedMimes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Format file tidak valid.'), false);
+    cb(new Error("Format file tidak valid."), false);
   }
 };
 

@@ -9,6 +9,7 @@ import {
   updateProduct,
 } from "../controllers/product.controller.js";
 import upload from "../config/multer.js";
+import { isAdmin } from "../middlewares/admin.middleware.js";
 
 const router = Router();
 
@@ -16,7 +17,8 @@ router.post(
   "/",
   isAuthenticated,
   upload.array("images", 10),
-  /* isAdmin, */ addProduct
+  isAdmin,
+  addProduct
 );
 router.get("/", getProducts);
 router.get("/category/:categoryId", getProductsByCategory);
@@ -25,8 +27,9 @@ router.put(
   "/:id",
   isAuthenticated,
   upload.array("images", 10),
-  /* isAdmin, */ updateProduct
+  isAdmin,
+  updateProduct
 );
-router.delete("/:id", isAuthenticated, /* isAdmin, */ deleteProduct);
+router.delete("/:id", isAuthenticated, isAdmin, deleteProduct);
 
 export default router;
