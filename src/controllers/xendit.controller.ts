@@ -103,13 +103,13 @@ export const createXenditInvoice = async (req: Request, res: Response) => {
     }
 
     // Create invoice via Xendit
-    const invoice = await xenditInvoice.createInvoice(invoiceData);
+    const invoice = await xenditInvoice.createInvoice({ data: invoiceData });
 
     // Update transaction with invoice data
     await transaction.update({
       transactionId: invoice.id,
-      snapToken: invoice.invoice_url,
-      snapRedirectUrl: invoice.invoice_url,
+      snapToken: invoice.invoiceUrl,
+      snapRedirectUrl: invoice.invoiceUrl,
     });
 
     return res.status(201).json({
@@ -118,8 +118,8 @@ export const createXenditInvoice = async (req: Request, res: Response) => {
       data: {
         orderId: transaction.orderId,
         invoiceId: invoice.id,
-        invoiceUrl: invoice.invoice_url,
-        expiryDate: invoice.expiry_date,
+        invoiceUrl: invoice.invoiceUrl,
+        expiryDate: invoice.expiryDate,
         amount: invoice.amount,
       },
     });
@@ -274,13 +274,17 @@ export const getInvoiceStatus = async (req: Request, res: Response) => {
 
     // Get latest status from Xendit
     try {
-      const invoice = await xenditInvoice.getInvoice({
+      const invoice = await xenditInvoice.getInvoiceById({
         invoiceId: transaction.transactionId!,
       });
 
       // Update if different
-      let newStatus: "pending" | "success" | "failed" | "expired" | "cancelled" =
-        "pending";
+      let newStatus:
+        | "pending"
+        | "success"
+        | "failed"
+        | "expired"
+        | "cancelled" = "pending";
 
       switch (invoice.status) {
         case "PAID":
