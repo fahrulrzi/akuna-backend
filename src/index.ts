@@ -13,6 +13,7 @@ import productRoutes from "./routes/product.routes.js";
 import deliveryRoutes from "./routes/delivery.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import xenditRoutes from "./routes/xendit.routes.js";
+import affiliateRoutes from "./routes/affiliate.routes.js";
 
 const startServer = async () => {
   try {
@@ -39,6 +40,7 @@ const startServer = async () => {
     app.use("/api/delivery", deliveryRoutes);
     app.use("/api/payments", paymentRoutes);
     app.use("/api/xendit", xenditRoutes);
+    app.use("/api/affiliate", affiliateRoutes);
 
     // Start Server
     app.listen(PORT, () => {

@@ -1,4 +1,31 @@
 import type { Request, Response } from "express";
+import { User, UserRole } from "../models/User.js";
+import { AffiliateRequest } from "../models/AffiliateRequest.js";
+import { config } from "../config/index.js";
+
+interface AuthRequest extends Request {
+  user?: { id: number; role: string };
+}
+
+export const getAffiliates = async (_req: AuthRequest, res: Response) => {
+  try {
+    const affiliates = await AffiliateRequest.findAll({
+      include: [{ model: User, as: "user" }],
+    });
+
+    res.status(200).json({
+      status: true,
+      message: "Data affiliate berhasil diambil.",
+      data: affiliates,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: false,
+      message: "Terjadi kesalahan pada server.",
+      data: config.nodeEnv === "development" ? error : undefined,
+    });
+  }
+};
 
 export const applyForAffiliate = async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id;
@@ -10,6 +37,15 @@ export const applyForAffiliate = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({
         success: false,
         message: "User tidak ditemukan.",
+        data: null,
+      });
+    }
+
+    if (user.address === null || user.phone === null) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Lengkapi data diri anda (alamat dan nomor telepon) sebelum mengajukan permohonan affiliate.",
         data: null,
       });
     }
@@ -39,16 +75,19 @@ export const applyForAffiliate = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // Ubah role user menjadi affiliate
-    // NOTE: proses ini seharusnya melalui persetujuan admin,
-    // bukan langsung diubah. Ini adalah versi sederhananya.
-    // user.role = UserRole.AFFILIATE;
-    // await user.save();
+    // Buat permohonan affiliate baru
+    const newRequest = await AffiliateRequest.create({
+      userId: user.id,
+      status: "pending",
+    });
 
     res.status(200).json({
       success: true,
       message: "Akun anda sedang dalam proses pengajuan affiliate.",
-      data: user,
+      data: {
+        user,
+        affiliateRequest: newRequest,
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -60,7 +99,8 @@ export const applyForAffiliate = async (req: AuthRequest, res: Response) => {
 };
 
 export const approveAffiliate = async (req: AuthRequest, res: Response) => {
-  const { userId } = req.params;
+  //   const { userId } = req.params;
+  const { userId, status } = req.body;
 
   try {
     const user = await User.findByPk(userId);
@@ -77,7 +117,6 @@ export const approveAffiliate = async (req: AuthRequest, res: Response) => {
     const existingRequest = await AffiliateRequest.findOne({
       where: {
         userId: user.id,
-        status: "pending",
       },
     });
 
@@ -89,15 +128,25 @@ export const approveAffiliate = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    user.role = UserRole.AFFILIATE;
-    await user.save();
+    if (status !== "approved" && status !== "rejected") {
+      return res.status(400).json({
+        success: false,
+        message: "Status tidak valid. Harus 'approved' atau 'rejected'.",
+        data: null,
+      });
+    }
 
-    existingRequest.status = "approved";
-    await existingRequest.save();
+    if (status === "approved") {
+      user.role = UserRole.AFFILIATE;
+      await user.save();
+
+      existingRequest.status = status;
+      await existingRequest.save();
+    }
 
     res.status(200).json({
       success: true,
-      message: "User telah disetujui sebagai affiliate.",
+      message: "Request affiliate telah diperbarui.",
       data: user,
     });
   } catch (error) {
