@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { config } from "../config/index.js";
 import { User, UserRole } from "../models/User.js";
 import bcrypt from "bcrypt";
+import { AffiliateRequest } from "../models/AffiliateRequest.js";
 
 // Extend Request type untuk menyertakan user dari middleware
 interface AuthRequest extends Request {
@@ -31,15 +32,81 @@ export const applyForAffiliate = async (req: AuthRequest, res: Response) => {
       });
     }
 
+    const existingRequest = await AffiliateRequest.findOne({
+      where: {
+        userId: user.id,
+        status: "pending",
+      },
+    });
+
+    if (existingRequest) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Anda sudah mengajukan permohonan affiliate. Silakan tunggu proses persetujuan.",
+        data: null,
+      });
+    }
+
     // Ubah role user menjadi affiliate
     // NOTE: proses ini seharusnya melalui persetujuan admin,
     // bukan langsung diubah. Ini adalah versi sederhananya.
-    user.role = UserRole.AFFILIATE;
-    await user.save();
+    // user.role = UserRole.AFFILIATE;
+    // await user.save();
 
     res.status(200).json({
       success: true,
-      message: "Selamat! Anda berhasil mendaftar sebagai affiliate.",
+      message: "Akun anda sedang dalam proses pengajuan affiliate.",
+      data: user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: false,
+      message: "Terjadi kesalahan pada server.",
+      data: config.nodeEnv === "development" ? error : undefined,
+    });
+  }
+};
+
+export const approveAffiliate = async (req: AuthRequest, res: Response) => {
+  const { userId } = req.params;
+
+  try {
+    const user = await User.findByPk(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User tidak ditemukan.",
+        data: null,
+      });
+    }
+
+    // Ubah role user menjadi affiliate
+    const existingRequest = await AffiliateRequest.findOne({
+      where: {
+        userId: user.id,
+        status: "pending",
+      },
+    });
+
+    if (!existingRequest) {
+      return res.status(400).json({
+        success: false,
+        message: "Tidak ada permohonan affiliate yang tertunda untuk user ini.",
+        data: null,
+      });
+    }
+
+    user.role = UserRole.AFFILIATE;
+    await user.save();
+
+    existingRequest.status = "approved";
+    await existingRequest.save();
+
+    res.status(200).json({
+      success: true,
+      message: "User telah disetujui sebagai affiliate.",
       data: user,
     });
   } catch (error) {
@@ -56,7 +123,20 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
 
   try {
     const user = await User.findByPk(userId, {
-      attributes: ["id", "name", "email", "role", "address", "city", "state", "postcode", "country", "phone", "addressFirstName", "addressLastName"],
+      attributes: [
+        "id",
+        "name",
+        "email",
+        "role",
+        "address",
+        "city",
+        "state",
+        "postcode",
+        "country",
+        "phone",
+        "addressFirstName",
+        "addressLastName",
+      ],
     });
 
     if (!user) {
@@ -84,7 +164,7 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
         state: (user as any).state,
         postcode: (user as any).postcode,
         country: (user as any).country,
-      }
+      },
     };
 
     res.status(200).json({
@@ -103,15 +183,10 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
 
 export const updateProfile = async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id;
-  const { 
-    name, 
-    email, 
-    phone, 
-    address 
-  } = req.body as { 
-    name?: string; 
-    email?: string; 
-    phone?: string; 
+  const { name, email, phone, address } = req.body as {
+    name?: string;
+    email?: string;
+    phone?: string;
     address?: {
       firstName?: string;
       lastName?: string;
@@ -210,7 +285,9 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
           });
         }
 
-        const existing = await User.findOne({ where: { email: address.email } });
+        const existing = await User.findOne({
+          where: { email: address.email },
+        });
         if (existing && existing.id !== user.id) {
           return res.status(400).json({
             success: false,
@@ -257,7 +334,7 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
         state: (user as any).state,
         postcode: (user as any).postcode,
         country: (user as any).country,
-      }
+      },
     };
 
     res.status(200).json({
@@ -306,7 +383,10 @@ export const deleteProfile = async (req: AuthRequest, res: Response) => {
 
 export const changePassword = async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id;
-  const { currentPassword, newPassword } = req.body as { currentPassword?: string; newPassword?: string };
+  const { currentPassword, newPassword } = req.body as {
+    currentPassword?: string;
+    newPassword?: string;
+  };
 
   try {
     const user = await User.findByPk(userId);
