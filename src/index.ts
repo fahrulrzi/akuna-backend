@@ -13,6 +13,7 @@ import productRoutes from "./routes/product.routes.js";
 import deliveryRoutes from "./routes/delivery.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import xenditRoutes from "./routes/xendit.routes.js";
+import blogRoutes from "./routes/blog.routes.js";
 
 const startServer = async () => {
   try {
@@ -36,6 +37,7 @@ const startServer = async () => {
     app.use("/api/users", userRoutes);
     app.use("/api/categories", categoryRoutes);
     app.use("/api/products", productRoutes);
+    app.use("/api/blogs", blogRoutes);
     app.use("/api/delivery", deliveryRoutes);
     app.use("/api/payments", paymentRoutes);
     app.use("/api/xendit", xenditRoutes);
