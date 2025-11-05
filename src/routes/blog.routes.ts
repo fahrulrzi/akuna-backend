@@ -16,7 +16,7 @@ router.post(
   "/",
   isAuthenticated,
   upload.single("thumbnail"),
-  isAdmin,
+  // isAdmin,
   createBlog
 );
 
@@ -27,11 +27,16 @@ router.put(
   "/:id",
   isAuthenticated,
   upload.single("thumbnail"),
-  isAdmin,
+  // isAdmin,
   updateBlog
 );
 
-router.delete("/:id", isAuthenticated, isAdmin, deleteBlog);
+router.delete(
+  "/:id", 
+  isAuthenticated, 
+  // isAdmin, 
+  deleteBlog
+);
 
 export default router;
 
