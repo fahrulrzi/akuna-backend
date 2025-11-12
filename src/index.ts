@@ -14,6 +14,7 @@ import deliveryRoutes from "./routes/delivery.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import xenditRoutes from "./routes/xendit.routes.js";
 import blogRoutes from "./routes/blog.routes.js";
+import cartRoutes from "./routes/cart.routes.js";
 
 const startServer = async () => {
   try {
@@ -41,7 +42,7 @@ const startServer = async () => {
     app.use("/api/delivery", deliveryRoutes);
     app.use("/api/payments", paymentRoutes);
     app.use("/api/xendit", xenditRoutes);
-
+    app.use("/api/cart", cartRoutes);
     // Start Server
     app.listen(PORT, () => {
       console.log(`Server is running on http://localhost:${PORT} 🚀`);
