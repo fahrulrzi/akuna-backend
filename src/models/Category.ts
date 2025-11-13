@@ -27,12 +27,6 @@ export class Category extends Model {
   })
   declare slug: string;
 
-  @Column({
-    type: DataType.STRING,
-    allowNull: false,
-  })
-  declare description: string;
-
   @HasMany(() => Product, "categoryId")
   products!: Product[];
 }

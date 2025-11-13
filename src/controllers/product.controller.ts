@@ -123,12 +123,30 @@ export const getProductById = async (req: Request, res: Response) => {
 };
 
 export const getProductsByCategory = async (req: Request, res: Response) => {
-  const { categoryId } = req.params;
+  const { category } = req.params;
 
   try {
+    // const products = await Product.findAll({
+    //   where: { slug },
+    //   include: ["category"],
+    // });
+
+    const categoryId = await Category.findOne({
+      where: { slug: category },
+    });
+
+    if (!categoryId) {
+      return res.status(404).json({
+        success: false,
+        message: "Kategori tidak ditemukan.",
+        data: null,
+      });
+    }
+
     const products = await Product.findAll({
-      where: { categoryId },
+      where: { categoryId: categoryId.id },
       include: ["category"],
+      order: [["createdAt", "DESC"]],
     });
 
     if (products.length === 0) {
@@ -285,9 +303,12 @@ export const deleteProduct = async (req: Request, res: Response) => {
   }
 };
 
-export const shareProductAffiliate = async (req: AuthRequest, res: Response) => {
+export const shareProductAffiliate = async (
+  req: AuthRequest,
+  res: Response
+) => {
   const { productId } = req.params;
-  const userId  = req.user?.id;
+  const userId = req.user?.id;
 
   try {
     const product = await Product.findByPk(productId);
@@ -302,7 +323,7 @@ export const shareProductAffiliate = async (req: AuthRequest, res: Response) => 
 
     const affiliateUser = await Affiliate.findOne({
       where: { userId: userId },
-    })
+    });
 
     const affiliateLink = `${config.frontendUrl}/product/${product.id}?ref=${affiliateUser?.referralCode}`;
 
@@ -320,4 +341,4 @@ export const shareProductAffiliate = async (req: AuthRequest, res: Response) => 
       data: config.nodeEnv === "development" ? error : undefined, //janlup ganti pas udah mau di deploy
     });
   }
-}
+};

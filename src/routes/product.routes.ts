@@ -23,7 +23,7 @@ router.post(
   addProduct
 );
 router.get("/", getProducts);
-router.get("/category/:categoryId", getProductsByCategory);
+router.get("/category/:category", getProductsByCategory);
 router.get("/:id", getProductById);
 router.put(
   "/:id",
