@@ -21,6 +21,8 @@ import settingsRoutes from "./routes/settings.route.js";
 //seeders
 import { settingsSeeder } from "./seeders/settings.seeder.js";
 import { adminSeeder } from "./seeders/admin.seeder.js";
+import { categorySeeder } from "./seeders/categories.seeder.js";
+import { productSeeder } from "./seeders/products.seeder.js";
 
 const startServer = async () => {
   try {
@@ -42,7 +44,9 @@ const startServer = async () => {
       await sequelize.sync();
       await settingsSeeder();
       await adminSeeder();
-
+      await categorySeeder();
+      await productSeeder();
+      
       console.log("Database synchronized and seeders executed.");
     } catch (error) {
       console.error("Error during database synchronization or seeding:", error);
