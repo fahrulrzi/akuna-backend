@@ -8,13 +8,19 @@ import {
 } from "sequelize-typescript";
 import { User } from "./User.js";
 
+export enum AffiliateRequestStatus {
+  PENDING = "pending",
+  APPROVED = "approved",
+  REJECTED = "rejected",
+}
+
 @Table({
   tableName: "affiliate_requests",
   timestamps: true,
 })
 export class AffiliateRequest extends Model {
   @Column({
-    type: DataType.UUID,
+    type: DataType.INTEGER,
     primaryKey: true,
     autoIncrement: true,
   })
@@ -28,11 +34,11 @@ export class AffiliateRequest extends Model {
   declare userId: number;
 
   @Column({
-    type: DataType.ENUM("pending", "approved", "rejected"),
+    type: DataType.ENUM(...Object.values(AffiliateRequestStatus)),
     allowNull: false,
-    defaultValue: "pending",
+    defaultValue: AffiliateRequestStatus.PENDING,
   })
-  declare status: "pending" | "approved" | "rejected";
+  declare status: AffiliateRequestStatus;
 
   @BelongsTo(() => User, "userId")
   user!: User;
