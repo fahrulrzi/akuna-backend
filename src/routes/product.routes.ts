@@ -6,10 +6,12 @@ import {
   getProductById,
   getProducts,
   getProductsByCategory,
+  shareProductAffiliate,
   updateProduct,
 } from "../controllers/product.controller.js";
 import upload from "../config/multer.js";
 import { isAdmin } from "../middlewares/admin.middleware.js";
+import { isAffiliate } from "../middlewares/affiliate.middleware.js";
 
 const router = Router();
 
@@ -31,5 +33,13 @@ router.put(
   updateProduct
 );
 router.delete("/:id", isAuthenticated, isAdmin, deleteProduct);
+
+// request share affiliate link
+router.get(
+  "/share/affiliate/:id",
+  isAuthenticated,
+  isAffiliate,
+  shareProductAffiliate
+);
 
 export default router;
