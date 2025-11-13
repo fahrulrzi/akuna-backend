@@ -168,7 +168,7 @@ export const updateCategory = async (req: Request, res: Response) => {
     // Update kategori
     category.name = name || category.name;
     category.slug = generatedSlug || category.slug;
-    category.description = description || category.description;
+    // category.description = description || category.description;
 
     await category.save();
 
