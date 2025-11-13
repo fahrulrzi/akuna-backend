@@ -37,22 +37,23 @@ const startServer = async () => {
     connectDB();
 
     // Seed initial data if needed
-    async () => {
-      if (config.nodeEnv === "development") {
-        try {
-          await sequelize.sync();
-          await settingsSeeder();
-          await adminSeeder();
+    // async () => {
+      // if (config.nodeEnv === "development") {
+      console.log("Running seeders...");
+      try {
+        await sequelize.sync();
+        await settingsSeeder();
+        await adminSeeder();
 
-          console.log("Database synchronized and seeders executed.");
-        } catch (error) {
-          console.error(
-            "Error during database synchronization or seeding:",
-            error
-          );
-        }
+        console.log("Database synchronized and seeders executed.");
+      } catch (error) {
+        console.error(
+          "Error during database synchronization or seeding:",
+          error
+        );
       }
-    };
+      // }
+    // };
 
     // Routes
     app.get("/", (req: Request, res: Response) => {
