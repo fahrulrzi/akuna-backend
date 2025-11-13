@@ -1,42 +1,22 @@
-import "reflect-metadata";
-import sequelize from "../config/database.js";
-import { User, UserRole } from "../models/User.js";
+import { User } from "../models/User.js";
 
-const seedAdmin = async () => {
-  try {
-    await sequelize.authenticate();
-    console.log("Database connection established.");
+export const adminSeeder = async () => {
+  const adminData = [
+    {
+      name: "Admin 1",
+      email: "admin1@gmail.com",
+      password: "hidupBl0nde",
+      role: "admin",
+    },
+  ];
 
-    const existingAdmin = await User.findOne({
-      where: { email: "atmin@akuna.com" },
-    });
-
-    if (existingAdmin) {
-      console.log("Admin account already exists. Skipping seed.");
-      await sequelize.close();
-      return;
+  for (const admin of adminData) {
+    const existingAdmin = await User.findOne({ where: { email: admin.email } });
+    if (!existingAdmin) {
+      await User.create(admin);
+      console.log(`Admin with email ${admin.email} created.`);
+    } else {
+      console.log(`Admin with email ${admin.email} already exists.`);
     }
-
-    const admin = await User.create({
-      name: "atmin",
-      email: "atmin@akuna.com",
-      password: "hidupjok0",
-      role: UserRole.ADMIN,
-    });
-
-    console.log("✅ Admin account created successfully!");
-    console.log(`   Name: ${admin.name}`);
-    console.log(`   Email: ${admin.email}`);
-    console.log(`   Role: ${admin.role}`);
-
-    await sequelize.close();
-    process.exit(0);
-  } catch (error) {
-    console.error("❌ Error seeding admin account:", error);
-    await sequelize.close();
-    process.exit(1);
   }
 };
-
-seedAdmin();
-

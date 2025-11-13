@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { User, UserRole } from "../models/User.js";
 import { AffiliateRequest } from "../models/AffiliateRequest.js";
 import { config } from "../config/index.js";
+import { Affiliate } from "../models/Affiliate.js";
 
 interface AuthRequest extends Request {
   user?: { id: number; role: string };
@@ -140,8 +141,19 @@ export const approveAffiliate = async (req: AuthRequest, res: Response) => {
       user.role = UserRole.AFFILIATE;
       await user.save();
 
+      const referalCode = `AFFILIATE-${user.id}-${Date.now()}`;
+
+      const newAffiliate = await Affiliate.create({
+        userId: user.id,
+        referralCode: referalCode,
+        // commissionRate: 0.1,
+        totalCommission: 0,
+      });
+
       existingRequest.status = status;
       await existingRequest.save();
+
+      console.log("New Affiliate Created:", newAffiliate);
     }
 
     res.status(200).json({

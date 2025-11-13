@@ -2,13 +2,13 @@ import { Router } from "express";
 import { isAuthenticated } from "../middlewares/auth.middleware.js";
 import { isAdmin } from "../middlewares/admin.middleware.js";
 import {
-  approveAffiliate,
-  getAffiliates,
-} from "../controllers/affiliate.controller.js";
+  getSettings,
+  updateSetting,
+} from "../controllers/settings.controller.js";
 
 const router = Router();
 
-router.get("/", isAuthenticated, isAdmin, getAffiliates);
-router.put("/", isAuthenticated, isAdmin, approveAffiliate);
+router.get("/", isAuthenticated, isAdmin, getSettings);
+router.put("/", isAuthenticated, isAdmin, updateSetting);
 
 export default router;

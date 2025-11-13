@@ -9,6 +9,8 @@ import { Blog } from "../models/Blog.js";
 import { Cart } from "../models/Cart.js";
 import { CartItem } from "../models/CartItem.js";
 import { AffiliateRequest } from "../models/AffiliateRequest.js";
+import { Affiliate } from "../models/Affiliate.js";
+import { Setting } from "../models/Setting.js";
 
 const sequelize = new Sequelize({
   dialect: "postgres",
@@ -18,7 +20,19 @@ const sequelize = new Sequelize({
   database: config.db.name ?? "",
   port: config.db.port,
   logging: false,
-  models: [User, Category, Product, Transaction, TransactionItem, Blog, Cart, CartItem, AffiliateRequest], // Daftarkan semua model di sini
+  models: [
+    User,
+    Category,
+    Product,
+    Transaction,
+    TransactionItem,
+    Blog,
+    Cart,
+    CartItem,
+    AffiliateRequest,
+    Affiliate,
+    Setting,
+  ], // Daftarkan semua model di sini
 });
 
 export const connectDB = async () => {

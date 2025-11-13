@@ -5,6 +5,9 @@ import { User } from "../models/User.js";
 import { Transaction } from "../models/Transaction.js";
 import { TransactionItem } from "../models/TransactionItem.js";
 import { coreApi, snap } from "../config/midtrans.js";
+import { Affiliate } from "../models/Affiliate.js";
+import { Setting } from "../models/Setting.js";
+import { totalmem } from "os";
 
 // Generate unique order ID
 const generateOrderId = (): string => {
@@ -170,14 +173,16 @@ export const handleNotification = async (req: Request, res: Response) => {
     }
 
     // Get transaction status from Midtrans
-    const statusResponse: any = await (coreApi as any).transaction.status(orderId);
+    const statusResponse: any = await (coreApi as any).transaction.status(
+      orderId
+    );
 
     const transactionStatus = statusResponse.transaction_status;
     const fraudStatus = statusResponse.fraud_status;
 
     // Find transaction in database
-    const transaction = await Transaction.findOne({ 
-      where: { orderId } 
+    const transaction = await Transaction.findOne({
+      where: { orderId },
     });
 
     if (!transaction) {
@@ -188,7 +193,8 @@ export const handleNotification = async (req: Request, res: Response) => {
     }
 
     // Update transaction status
-    let newStatus: "pending" | "success" | "failed" | "expired" | "cancelled" = "pending";
+    let newStatus: "pending" | "success" | "failed" | "expired" | "cancelled" =
+      "pending";
 
     if (transactionStatus === "capture") {
       if (fraudStatus === "accept") {
@@ -227,6 +233,31 @@ export const handleNotification = async (req: Request, res: Response) => {
           });
 
           console.log("prodcut sudah di kurangi stocknya", product.name);
+        }
+      }
+
+      const ref = req.cookies.affiliate_ref;
+
+      if (ref) {
+        console.log("Affiliate ref found in cookies:", ref);
+        const affiliate = await Affiliate.findOne({
+          where: {
+            referralCode: ref,
+          },
+        });
+
+        if (affiliate) {
+          const setting = await Setting.findOne({
+            where: { key: "affiliate_commission_rate" },
+          });
+          const commissionRate = parseFloat(setting?.value ?? "0.1");
+          const commission = transaction.totalAmount * commissionRate;
+
+          await Affiliate.update({
+            totalCommission: affiliate.totalCommission + commission,
+          }, {
+            where: { id: affiliate.id },
+          });
         }
       }
     }
@@ -274,7 +305,9 @@ export const getTransactionStatus = async (req: Request, res: Response) => {
 
     // Get latest status from Midtrans
     try {
-      const statusResponse: any = await (coreApi as any).transaction.status(orderId);
+      const statusResponse: any = await (coreApi as any).transaction.status(
+        orderId
+      );
 
       // Update local status if different
       const midtransStatus = statusResponse.transaction_status;

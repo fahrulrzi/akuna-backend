@@ -3,6 +3,11 @@ import { Product } from "../models/Product.js";
 import { storageService } from "../services/storage.service.js";
 import { config } from "../config/index.js";
 import { Category } from "../models/Category.js";
+import { Affiliate } from "../models/Affiliate.js";
+
+interface AuthRequest extends Request {
+  user?: { id: number; role: string };
+}
 
 export const addProduct = async (req: Request, res: Response) => {
   try {
@@ -279,3 +284,40 @@ export const deleteProduct = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const shareProductAffiliate = async (req: AuthRequest, res: Response) => {
+  const { productId } = req.params;
+  const userId  = req.user?.id;
+
+  try {
+    const product = await Product.findByPk(productId);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Produk tidak ditemukan.",
+        data: null,
+      });
+    }
+
+    const affiliateUser = await Affiliate.findOne({
+      where: { userId: userId },
+    })
+
+    const affiliateLink = `${config.frontendUrl}/product/${product.id}?ref=${affiliateUser?.referralCode}`;
+
+    res.status(200).json({
+      success: true,
+      message: "Link affiliate produk berhasil dibuat.",
+      data: {
+        affiliateLink,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Terjadi kesalahan pada server.",
+      data: config.nodeEnv === "development" ? error : undefined, //janlup ganti pas udah mau di deploy
+    });
+  }
+}
