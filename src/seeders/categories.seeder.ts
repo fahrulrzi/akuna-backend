@@ -12,7 +12,12 @@ export const categorySeeder = async () => {
     { name: "Conditioner" },
     { name: "Daily Light" },
     { name: "Perfume Balm" },
-    { name: "Bath Oil" }
+    { name: "Bath Oil" },
+    { name: "Soap", slug: "soap" },
+    { name: "Shampoo", slug: "shampoo" },
+    { name: "Lotion", slug: "lotion" },
+    { name: "Perfume", slug: "perfume" },
+    { name: "Makeup", slug: "makeup" },
   ];
 
   for (const category of categories) {

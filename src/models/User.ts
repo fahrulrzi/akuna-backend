@@ -23,6 +23,13 @@ export enum UserRole {
       exclude: ["password"],
     },
   },
+  scopes: {
+    withPassword: {
+      attributes: {
+        include: ["password"],
+      },
+    },
+  },
 })
 export class User extends Model {
   @Column({

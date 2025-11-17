@@ -60,7 +60,7 @@ export const login = async (req: Request, res: Response) => {
 
   try {
     // Cari user berdasarkan email
-    const user = await User.findOne({ where: { email } });
+    const user = await User.scope("withPassword").findOne({ where: { email } });
 
     if (!user) {
       return res.status(404).json({

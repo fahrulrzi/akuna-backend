@@ -22,7 +22,10 @@ import settingsRoutes from "./routes/settings.route.js";
 import { settingsSeeder } from "./seeders/settings.seeder.js";
 import { adminSeeder } from "./seeders/admin.seeder.js";
 import { categorySeeder } from "./seeders/categories.seeder.js";
+<<<<<<< HEAD
 import { productSeeder } from "./seeders/products.seeder.js";
+=======
+>>>>>>> c0ecf9c (fix: login)
 
 const startServer = async () => {
   try {
@@ -46,7 +49,7 @@ const startServer = async () => {
       await adminSeeder();
       await categorySeeder();
       await productSeeder();
-      
+
       console.log("Database synchronized and seeders executed.");
     } catch (error) {
       console.error("Error during database synchronization or seeding:", error);
