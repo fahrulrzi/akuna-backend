@@ -173,7 +173,10 @@ export const getCart = async (req: AuthRequest, res: Response) => {
       cart = await Cart.create({ userId });
     }
 
-    const items = cart.items || [];
+    const { items = [] } = (cart?.get({ plain: true }) ?? {}) as {
+      items?: CartItem[];
+    };
+       
     let subtotal = 0;
     const formattedItems = items.map((item: any) => {
       const itemPrice = parseFloat(item.product.price);
