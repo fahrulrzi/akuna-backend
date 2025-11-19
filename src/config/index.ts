@@ -20,7 +20,13 @@ export const config = {
     password: process.env.DB_PASSWORD,
     name: process.env.DB_NAME,
     port: Number(process.env.DB_PORT),
+    ssl: (process.env.DB_SSL || "false") === "true",
+    url: process.env.DATABASE_URL || null,
   },
+  supabase: {
+    url: process.env.SUPABASE_URL || null,
+    apiKey: process.env.SUPABASE_API_KEY || null,
+  }, 
   jwt: {
     secret: jwtSecret,
     resetSecret: jwtResetSecret,
