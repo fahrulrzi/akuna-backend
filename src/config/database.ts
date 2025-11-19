@@ -12,36 +12,88 @@ import { AffiliateRequest } from "../models/AffiliateRequest.js";
 import { Affiliate } from "../models/Affiliate.js";
 import { Setting } from "../models/Setting.js";
 
-const sequelize = new Sequelize({
-  dialect: "postgres",
-  host: config.db.host ?? "",
-  username: config.db.user ?? "",
-  password: config.db.password ?? "",
-  database: config.db.name ?? "",
-  port: config.db.port,
+const models = [
+  User,
+  Category,
+  Product,
+  Transaction,
+  TransactionItem,
+  Blog,
+  Cart,
+  CartItem,
+  AffiliateRequest,
+  Affiliate,
+  Setting,
+]; // Daftarkan semua model di sini
+
+const commonOptions = {
+  dialect: "postgres" as const,
+  models,
   logging: false,
-  models: [
-    User,
-    Category,
-    Product,
-    Transaction,
-    TransactionItem,
-    Blog,
-    Cart,
-    CartItem,
-    AffiliateRequest,
-    Affiliate,
-    Setting,
-  ], // Daftarkan semua model di sini
-});
+  pool: {
+    max: 10,
+    min: 0,
+    acquire: 30000,
+    idle: 10000,
+  },
+  define: {
+    underscored: true,
+    freezeTableName: false,
+  },
+};
+
+function getDialectOptions() {
+  if (config.supabase.url && config.supabase.apiKey) {
+    return {
+      ssl: {
+        require: true,
+        rejectUnauthorized: config.nodeEnv === "production",
+      },
+    };
+  }
+
+  if (config.db.ssl) {
+    return {
+      ssl: {
+        require: true,
+        rejectUnauthorized: config.nodeEnv === "production",
+      },
+    };
+  }
+
+  return undefined;
+}
+
+const dialectOptions = getDialectOptions();
+
+const sequelize = config.supabase.url
+  ? new Sequelize(config.supabase.url, {
+      ...commonOptions,
+      ...(dialectOptions ? { dialectOptions } : {}),
+    })
+  : new Sequelize({
+      ...commonOptions,
+      host: config.db.host!,
+      username: config.db.user!,
+      password: config.db.password!,
+      database: config.db.name!,
+      port: config.db.port!,
+      ...(dialectOptions ? { dialectOptions } : {}),
+    });
 
 export const connectDB = async () => {
   try {
     await sequelize.authenticate();
-    await sequelize.sync({ alter: true });
-    console.log("PostgreSQL Connection has been established successfully. ✅");
+    if (config.nodeEnv !== "production") {
+      await sequelize.sync({ alter: true });
+      console.log("DB synced (alter).");
+    } else {
+      console.log("Production mode: skip sync, use migrations.");
+    }
+    console.log("PostgreSQL Connection established ✅");
   } catch (error) {
-    console.error("Unable to connect to the database:", error);
+    console.error("Unable to connect to DB:", error);
+    throw error;
   }
 };
 
