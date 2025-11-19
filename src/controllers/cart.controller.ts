@@ -264,7 +264,9 @@ export const updateCartItem = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    if (cartItem.cart.userId !== userId) {
+    const cartRecord = cartItem.get("cart") as Cart | undefined;
+
+    if (!cartRecord || cartRecord.userId !== userId) {
       return res.status(403).json({
         success: false,
         message: "You don't have permission to update this cart item.",
@@ -272,7 +274,15 @@ export const updateCartItem = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const product = cartItem.product;
+    const product = cartItem.get("product") as Product | undefined;
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found.",
+        data: null,
+      });
+    }
+
     if (product.stock < quantity) {
       return res.status(400).json({
         success: false,
@@ -300,7 +310,9 @@ export const updateCartItem = async (req: AuthRequest, res: Response) => {
       ],
     });
 
-    const items = cart?.items || [];
+    const { items = [] } = (cart?.get({ plain: true }) ?? {}) as {
+      items?: CartItem[];
+    };
     let subtotal = 0;
     const formattedItems = items.map((item: any) => {
       const itemPrice = parseFloat(item.product.price);
@@ -375,7 +387,9 @@ export const removeCartItem = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    if (cartItem.cart.userId !== userId) {
+    const cartRecord = cartItem.get("cart") as Cart | undefined;
+
+    if (!cartRecord || cartRecord.userId !== userId) {
       return res.status(403).json({
         success: false,
         message: "You don't have permission to remove this cart item.",
@@ -402,7 +416,9 @@ export const removeCartItem = async (req: AuthRequest, res: Response) => {
       ],
     });
 
-    const items = cart?.items || [];
+    const { items = [] } = (cart?.get({ plain: true }) ?? {}) as {
+      items?: CartItem[];
+    };
     let subtotal = 0;
     const formattedItems = items.map((item: any) => {
       const itemPrice = parseFloat(item.product.price);
