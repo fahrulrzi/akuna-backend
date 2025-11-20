@@ -43,7 +43,7 @@ const commonOptions = {
 };
 
 function getDialectOptions() {
-  if (config.supabase.url && config.supabase.apiKey) {
+  if (config.db.url && config.supabase.apiKey) {
     return {
       ssl: {
         require: true,
@@ -66,8 +66,8 @@ function getDialectOptions() {
 
 const dialectOptions = getDialectOptions();
 
-const sequelize = config.supabase.url
-  ? new Sequelize(config.supabase.url, {
+const sequelize = config.db.url
+  ? new Sequelize(config.db.url, {
       ...commonOptions,
       ...(dialectOptions ? { dialectOptions } : {}),
     })
