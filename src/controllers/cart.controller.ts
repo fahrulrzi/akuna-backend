@@ -8,6 +8,69 @@ interface AuthRequest extends Request {
   user?: { id: number; role: string };
 }
 
+const formatCartResponse = (cart: Cart | null) => {
+  if (!cart) {
+    return {
+      id: null,
+      userId: null,
+      items: [],
+      subtotal: 0,
+      itemCount: 0,
+      totalItems: 0,
+    };
+  }
+
+  const plainCart = cart.get({ plain: true }) as Cart & {
+    items?: Array<
+      CartItem & {
+        product: {
+          id: number;
+          name: string;
+          price: string | number;
+          stock: number;
+          images: string[];
+          description?: string;
+        };
+      }
+    >;
+  };
+
+  const items = plainCart.items ?? [];
+  let subtotal = 0;
+
+  const formattedItems = items.map((item) => {
+    const rawPrice = item.product?.price ?? 0;
+    const numericPrice =
+      typeof rawPrice === "number" ? rawPrice : Number.parseFloat(rawPrice) || 0;
+    const itemSubtotal = numericPrice * item.quantity;
+    subtotal += itemSubtotal;
+
+    return {
+      id: item.id,
+      productId: item.productId,
+      product: {
+        id: item.product?.id,
+        name: item.product?.name,
+        price: numericPrice,
+        stock: item.product?.stock,
+        images: item.product?.images,
+        description: item.product?.description,
+      },
+      quantity: item.quantity,
+      subtotal: itemSubtotal,
+    };
+  });
+
+  return {
+    id: plainCart.id,
+    userId: plainCart.userId,
+    items: formattedItems,
+    subtotal,
+    itemCount: formattedItems.length,
+    totalItems: formattedItems.reduce((sum, item) => sum + item.quantity, 0),
+  };
+};
+
 export const addToCart = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
@@ -96,10 +159,18 @@ export const addToCart = async (req: AuthRequest, res: Response) => {
         ],
       });
 
+      if (!updatedCart) {
+        return res.status(500).json({
+          success: false,
+          message: "Cart tidak ditemukan setelah pembaruan.",
+          data: null,
+        });
+      }
+
       return res.status(200).json({
         success: true,
         message: "Item quantity updated in cart.",
-        data: updatedCart,
+        data: formatCartResponse(updatedCart),
       });
     }
 
@@ -125,10 +196,18 @@ export const addToCart = async (req: AuthRequest, res: Response) => {
       ],
     });
 
+    if (!updatedCart) {
+      return res.status(500).json({
+        success: false,
+        message: "Cart tidak ditemukan setelah penambahan item.",
+        data: null,
+      });
+    }
+
     res.status(201).json({
       success: true,
       message: "Item added to cart successfully.",
-      data: updatedCart,
+      data: formatCartResponse(updatedCart),
     });
   } catch (error) {
     console.error("Error in addToCart:", error);
@@ -173,43 +252,10 @@ export const getCart = async (req: AuthRequest, res: Response) => {
       cart = await Cart.create({ userId });
     }
 
-    const { items = [] } = (cart?.get({ plain: true }) ?? {}) as {
-      items?: CartItem[];
-    };
-       
-    let subtotal = 0;
-    const formattedItems = items.map((item: any) => {
-      const itemPrice = parseFloat(item.product.price);
-      const itemSubtotal = itemPrice * item.quantity;
-      subtotal += itemSubtotal;
-
-      return {
-        id: item.id,
-        productId: item.productId,
-        product: {
-          id: item.product.id,
-          name: item.product.name,
-          price: itemPrice,
-          stock: item.product.stock,
-          images: item.product.images,
-          description: item.product.description,
-        },
-        quantity: item.quantity,
-        subtotal: itemSubtotal,
-      };
-    });
-
     res.status(200).json({
       success: true,
       message: "Cart retrieved successfully.",
-      data: {
-        id: cart.id,
-        userId: cart.userId,
-        items: formattedItems,
-        subtotal: subtotal,
-        itemCount: formattedItems.length,
-        totalItems: formattedItems.reduce((sum, item) => sum + item.quantity, 0),
-      },
+      data: formatCartResponse(cart),
     });
   } catch (error) {
     console.error("Error in getCart:", error);
@@ -310,42 +356,10 @@ export const updateCartItem = async (req: AuthRequest, res: Response) => {
       ],
     });
 
-    const { items = [] } = (cart?.get({ plain: true }) ?? {}) as {
-      items?: CartItem[];
-    };
-    let subtotal = 0;
-    const formattedItems = items.map((item: any) => {
-      const itemPrice = parseFloat(item.product.price);
-      const itemSubtotal = itemPrice * item.quantity;
-      subtotal += itemSubtotal;
-
-      return {
-        id: item.id,
-        productId: item.productId,
-        product: {
-          id: item.product.id,
-          name: item.product.name,
-          price: itemPrice,
-          stock: item.product.stock,
-          images: item.product.images,
-          description: item.product.description,
-        },
-        quantity: item.quantity,
-        subtotal: itemSubtotal,
-      };
-    });
-
     res.status(200).json({
       success: true,
       message: "Cart item updated successfully.",
-      data: {
-        id: cart?.id,
-        userId: cart?.userId,
-        items: formattedItems,
-        subtotal: subtotal,
-        itemCount: formattedItems.length,
-        totalItems: formattedItems.reduce((sum, item) => sum + item.quantity, 0),
-      },
+      data: formatCartResponse(cart),
     });
   } catch (error) {
     console.error("Error in updateCartItem:", error);
@@ -416,42 +430,10 @@ export const removeCartItem = async (req: AuthRequest, res: Response) => {
       ],
     });
 
-    const { items = [] } = (cart?.get({ plain: true }) ?? {}) as {
-      items?: CartItem[];
-    };
-    let subtotal = 0;
-    const formattedItems = items.map((item: any) => {
-      const itemPrice = parseFloat(item.product.price);
-      const itemSubtotal = itemPrice * item.quantity;
-      subtotal += itemSubtotal;
-
-      return {
-        id: item.id,
-        productId: item.productId,
-        product: {
-          id: item.product.id,
-          name: item.product.name,
-          price: itemPrice,
-          stock: item.product.stock,
-          images: item.product.images,
-          description: item.product.description,
-        },
-        quantity: item.quantity,
-        subtotal: itemSubtotal,
-      };
-    });
-
     res.status(200).json({
       success: true,
       message: "Item removed from cart successfully.",
-      data: {
-        id: cart?.id,
-        userId: cart?.userId,
-        items: formattedItems,
-        subtotal: subtotal,
-        itemCount: formattedItems.length,
-        totalItems: formattedItems.reduce((sum, item) => sum + item.quantity, 0),
-      },
+      data: formatCartResponse(cart),
     });
   } catch (error) {
     console.error("Error in removeCartItem:", error);
