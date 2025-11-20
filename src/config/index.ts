@@ -55,6 +55,10 @@ export const config = {
       publicUrl: process.env.R2_PUBLIC_URL || "",
     },
   },
+  redis: {
+    url: process.env.REDIS_URL || "redis://localhost:6379",
+  },
+  queuePrefix: process.env.QUEUE_PREFIX || "akuna",
   // midtrans: {
   //   serverKey: process.env.MIDTRANS_SERVER_KEY || "",
   //   // clientKey: process.env.MIDTRANS_CLIENT_KEY || "",

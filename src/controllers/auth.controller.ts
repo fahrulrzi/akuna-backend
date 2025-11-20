@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { config } from "../config/index.js";
 import bcrypt from "bcrypt";
 import { sendEmail } from "../utils/email.js";
+import { enqueueResetPasswordEmail } from "../queue/emailQueue.js";
 
 interface ResetTokenRequest {
   id: number;
@@ -112,49 +113,48 @@ export const login = async (req: Request, res: Response) => {
 
 export const forgotPassword = async (req: Request, res: Response) => {
   const { email } = req.body;
-
   try {
     const user = await User.findOne({ where: { email } });
-
-    // tidak memberi tahu user apakah email ada atau tidak
     if (!user) {
-      return res.status(200).json({
+      return res
+        .status(200)
+        .json({
+          success: true,
+          message: "Jika email terdaftar, link reset password akan dikirimkan.",
+          data: null,
+        });
+    }
+
+    if (!config.jwt.resetSecret)
+      throw new Error("Reset secret is not defined in config.");
+    const resetToken = jwt.sign({ id: user.id }, config.jwt.resetSecret, {
+      expiresIn: "15m",
+    });
+    const resetUrl = `${config.clientUrl}/reset-password/${resetToken}`;
+
+    // ENQUEUE ke Redis (fast)
+    await enqueueResetPasswordEmail({
+      to: user.email,
+      resetUrl,
+      userId: user.id,
+    });
+
+    return res
+      .status(200)
+      .json({
         success: true,
         message: "Jika email terdaftar, link reset password akan dikirimkan.",
         data: null,
       });
-    }
-
-    // Buat token reset yang berlaku singkat
-    if (!config.jwt.resetSecret) {
-      throw new Error("Reset secret is not defined in config.");
-    }
-    const resetToken = jwt.sign({ id: user.id }, config.jwt.resetSecret, {
-      expiresIn: "15m",
-    });
-
-    // Buat URL reset
-    const resetUrl = `${config.clientUrl}/reset-password/${resetToken}`;
-
-    // Kirim email
-    await sendEmail({
-      to: user.email,
-      subject: "Link Reset Password Anda",
-      text: `Anda menerima email ini karena Anda (atau orang lain) meminta untuk mereset password akun Anda. Silakan klik link berikut atau salin ke browser Anda untuk menyelesaikan proses: \n\n ${resetUrl} \n\n Jika Anda tidak meminta ini, abaikan email ini dan password Anda akan tetap aman.`,
-      html: `<p>Anda menerima email ini karena Anda (atau orang lain) meminta untuk mereset password akun Anda. Silakan klik link berikut atau salin ke browser Anda untuk menyelesaikan proses:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>Jika Anda tidak meminta ini, abaikan email ini dan password Anda akan tetap aman.</p>`,
-    });
-
-    res.status(200).json({
-      success: true,
-      message: "Jika email terdaftar, link reset password akan dikirimkan.",
-      data: null,
-    });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Terjadi kesalahan pada server." + error,
-      data: config.nodeEnv === "development" ? error : undefined,
-    });
+    console.error("forgotPassword error:", error);
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Terjadi kesalahan pada server.",
+        data: config.nodeEnv === "development" ? error : undefined,
+      });
   }
 };
 
