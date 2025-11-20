@@ -152,7 +152,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Terjadi kesalahan pada server.",
+      message: "Terjadi kesalahan pada server." + error,
       data: config.nodeEnv === "development" ? error : undefined,
     });
   }
