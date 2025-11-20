@@ -1,4 +1,4 @@
-import { Queue } from "bullmq"; // Hapus QueueScheduler dari sini
+import { Queue } from "bullmq"; 
 import IORedis from "ioredis";
 import { config } from "../config/index.js";
 

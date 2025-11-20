@@ -18,7 +18,8 @@ const transporter = nodemailer.createTransport({
   tls: {
     rejectUnauthorized: true,
   },
-  // debug: true, // aktifkan saat debugging untuk lebih banyak log
+  debug: true, // aktifkan saat debugging untuk lebih banyak log
+  logger: true,
 });
 
 interface EmailOptions {
