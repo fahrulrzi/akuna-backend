@@ -21,7 +21,8 @@ export const categorySeeder = async () => {
   ];
 
   for (const category of categories) {
-    const slug = slugify.default(category.name, { lower: true, strict: true });
+    // const slug = slugify.default(category.name, { lower: true, strict: true });
+    const slug = slugify(category.name, { lower: true, strict: true });
     const created = await Category.findOrCreate({
       where: { name: category.name, slug },
       defaults: category,

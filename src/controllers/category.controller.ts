@@ -18,8 +18,8 @@ export const addCategory = async (req: Request, res: Response) => {
     }
 
     const generatedSlug = slug
-      ? slugify.default(slug, { lower: true, strict: true })
-      : slugify.default(name, { lower: true, strict: true });
+      ? slugify(slug, { lower: true, strict: true })
+      : slugify(name, { lower: true, strict: true });
 
     const existingSlug = await Category.findOne({
       where: { slug: generatedSlug },
@@ -161,8 +161,8 @@ export const updateCategory = async (req: Request, res: Response) => {
     // buat slug otomatis
     if (!slug) {
       generatedSlug = slug
-        ? slugify.default(slug, { lower: true, strict: true })
-        : slugify.default(name, { lower: true, strict: true });
+        ? slugify(slug, { lower: true, strict: true })
+        : slugify(name, { lower: true, strict: true });
     }
 
     // Update kategori
