@@ -3,7 +3,12 @@ import { biteshipClient } from "../utils/biteship.js";
 
 export const getRates = async (req: Request, res: Response) => {
   try {
-    const data = await biteshipClient.getRates(req.body);
+    const { items, ...biteshipPayload } = req.body as { items?: unknown; [key: string]: unknown };
+    const payloadWithEmptyItems = {
+      ...biteshipPayload,
+      items: [],
+    };
+    const data = await biteshipClient.getRates(payloadWithEmptyItems);
     res.status(200).json({
       success: true,
       message: "Data rates berhasil diambil.",
