@@ -18,11 +18,15 @@ import cartRoutes from "./routes/cart.routes.js";
 import affiliateRoutes from "./routes/affiliate.routes.js";
 import settingsRoutes from "./routes/settings.route.js";
 
+// admin routes
+import adminRoutes from "./routes/admin.routes.js";
+
 //seeders
 import { settingsSeeder } from "./seeders/settings.seeder.js";
 import { adminSeeder } from "./seeders/admin.seeder.js";
 import { categorySeeder } from "./seeders/categories.seeder.js";
 import { productSeeder } from "./seeders/products.seeder.js";
+import { ownerSeeder } from "./seeders/owner.seeder.js";
 
 const startServer = async () => {
   try {
@@ -46,6 +50,7 @@ const startServer = async () => {
       await adminSeeder();
       await categorySeeder();
       await productSeeder();
+      await ownerSeeder();
 
       console.log("Database synchronized and seeders executed.");
     } catch (error) {
@@ -66,7 +71,8 @@ const startServer = async () => {
     app.use("/api/xendit", xenditRoutes);
     app.use("/api/cart", cartRoutes);
     app.use("/api/affiliate", affiliateRoutes);
-    app.use("api/settings", settingsRoutes);
+    app.use("/api/settings", settingsRoutes);
+    app.use("/api/admin", adminRoutes);
 
     // Start Server
     app.listen(PORT, () => {
