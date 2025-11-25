@@ -16,6 +16,12 @@ export class Blog extends Model {
     type: DataType.STRING,
     allowNull: false,
   })
+  declare author: string;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: false,
+  })
   declare title: string;
 
   @Column({

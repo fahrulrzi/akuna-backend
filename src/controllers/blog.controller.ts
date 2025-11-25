@@ -5,10 +5,10 @@ import { config } from "../config/index.js";
 
 export const createBlog = async (req: Request, res: Response) => {
   try {
-    const { title, content } = req.body || {};
+    const { author, title, content } = req.body || {};
     const file = (req as any).file as Express.Multer.File | undefined;
 
-    if (!title || !content) {
+    if (!author || !title || !content) {
       return res.status(400).json({
         success: false,
         message: "Title dan content wajib diisi.",
@@ -26,6 +26,7 @@ export const createBlog = async (req: Request, res: Response) => {
     }
 
     const blog = await Blog.create({
+      author,
       title,
       content,
       thumbnailUrl,
@@ -93,7 +94,7 @@ export const getBlogById = async (req: Request, res: Response) => {
 export const updateBlog = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { title, content, removeThumbnail } = req.body || {};
+    const { author, title, content, removeThumbnail } = req.body || {};
     const file = (req as any).file as Express.Multer.File | undefined;
 
     const blog = await Blog.findByPk(id);
@@ -109,7 +110,10 @@ export const updateBlog = async (req: Request, res: Response) => {
     let nextThumbnailKey = blog.thumbnailKey;
 
     // Delete existing thumbnail if requested
-    if (removeThumbnail && (removeThumbnail === true || removeThumbnail === "true")) {
+    if (
+      removeThumbnail &&
+      (removeThumbnail === true || removeThumbnail === "true")
+    ) {
       if (nextThumbnailKey) {
         await storageService.deleteFile(nextThumbnailKey);
       }
@@ -128,6 +132,7 @@ export const updateBlog = async (req: Request, res: Response) => {
     }
 
     await blog.update({
+      author: author !== undefined ? author : blog.author,
       title: title !== undefined ? title : blog.title,
       content: content !== undefined ? content : blog.content,
       thumbnailUrl: nextThumbnailUrl,
@@ -180,5 +185,3 @@ export const deleteBlog = async (req: Request, res: Response) => {
     });
   }
 };
-
-
