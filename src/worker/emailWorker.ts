@@ -27,7 +27,7 @@ console.log(
 );
 console.log("====================");
 
-const queueName = `${process.env.QUEUE_PREFIX || "akuna"}:email`;
+const queueName = "akuna";
 
 const worker = new Worker(
   queueName,
