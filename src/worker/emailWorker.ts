@@ -32,16 +32,28 @@ const queueName = "email";
 const worker = new Worker(
   queueName,
   async (job: Job) => {
-    console.log(`WORKER: got job ${job.id} name=${job.name} data=${JSON.stringify(job.data)}`);
+    console.log(
+      `WORKER: got job ${job.id} name=${job.name} data=${JSON.stringify(
+        job.data
+      )}`
+    );
 
     if (job.name !== "send-reset-password") {
       console.error("WORKER: unknown job name", job.name);
       throw new Error("Unknown job");
     }
 
-    const { to, resetUrl, userId } = job.data as { to: string; resetUrl: string; userId: number | string };
+    const { to, resetUrl, userId } = job.data as {
+      to: string;
+      resetUrl: string;
+      userId: number | string;
+    };
 
-    console.log("WORKER: about to build email payload", { to, userId, resetUrl });
+    console.log("WORKER: about to build email payload", {
+      to,
+      userId,
+      resetUrl,
+    });
 
     const subject = "Link Reset Password Anda";
     const text = `Anda menerima email... Link: ${resetUrl}`;
@@ -60,7 +72,9 @@ const worker = new Worker(
 );
 
 // after creating worker:
-worker.on("active", job => console.log(`> active job ${job.id} ${job.name}`, job.data));
+worker.on("active", (job) =>
+  console.log(`> active job ${job.id} ${job.name}`, job.data)
+);
 worker.on("completed", (job) => console.log(`Job ${job.id} completed`));
 worker.on("failed", (job, err) => console.error(`Job ${job?.id} failed`, err));
 worker.on("error", (err) => console.error("Worker error", err));
