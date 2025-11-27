@@ -49,6 +49,8 @@ const worker = new Worker(
   { connection, concurrency: Number(process.env.EMAIL_WORKER_CONCURRENCY || 5) }
 );
 
+// after creating worker:
+worker.on("active", job => console.log(`> active job ${job.id} ${job.name}`, job.data));
 worker.on("completed", (job) => console.log(`Job ${job.id} completed`));
 worker.on("failed", (job, err) => console.error(`Job ${job?.id} failed`, err));
 worker.on("error", (err) => console.error("Worker error", err));
