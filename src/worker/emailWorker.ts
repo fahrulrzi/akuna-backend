@@ -13,20 +13,6 @@ const connection = new IORedis(redisUrl, {
   },
 });
 
-// debug start
-console.log("=== WORKER START ===");
-console.log("NODE_ENV:", process.env.NODE_ENV);
-console.log("REDIS_URL:", !!process.env.REDIS_URL ? "[present]" : "[MISSING]");
-console.log(
-  "SENDGRID_API_KEY:",
-  !!process.env.SENDGRID_API_KEY ? "[present]" : "[MISSING]"
-);
-console.log(
-  "EMAIL_HOST:",
-  !!process.env.EMAIL_HOST ? "[present]" : "[MISSING]"
-);
-console.log("====================");
-
 const queueName = "email";
 
 const worker = new Worker(
@@ -39,7 +25,6 @@ const worker = new Worker(
     );
 
     if (job.name !== "send-reset-password") {
-      console.error("WORKER: unknown job name", job.name);
       throw new Error("Unknown job");
     }
 
@@ -49,20 +34,12 @@ const worker = new Worker(
       userId: number | string;
     };
 
-    console.log("WORKER: about to build email payload", {
-      to,
-      userId,
-      resetUrl,
-    });
-
     const subject = "Link Reset Password Anda";
     const text = `Anda menerima email... Link: ${resetUrl}`;
     const html = `<p>Anda menerima email...</p><p><a href="${resetUrl}">${resetUrl}</a></p>`;
 
     // *critical log* right before calling sendEmail
-    console.log("WORKER: calling sendEmail()", { to, subject });
     await sendEmail({ to, subject, text, html });
-    console.log(`WORKER: sendEmail returned for ${to} userId=${userId}`);
   },
   {
     connection,
