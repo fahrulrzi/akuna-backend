@@ -6,6 +6,15 @@ import { sendEmail } from "../utils/email.js";
 const redisUrl = process.env.REDIS_URL || config.redis.url || "redis://localhost:6379";
 const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null, enableReadyCheck: true, retryStrategy(times) { return Math.min(2000 + times * 200, 20000); } });
 
+// debug start
+console.log("=== WORKER START ===");
+console.log("NODE_ENV:", process.env.NODE_ENV);
+console.log("REDIS_URL:", !!process.env.REDIS_URL ? "[present]" : "[MISSING]");
+console.log("SENDGRID_API_KEY:", !!process.env.SENDGRID_API_KEY ? "[present]" : "[MISSING]");
+console.log("EMAIL_HOST:", !!process.env.EMAIL_HOST ? "[present]" : "[MISSING]");
+console.log("====================");
+
+
 const queueName = "email";
 
 const worker = new Worker(queueName, async (job: Job) => {
