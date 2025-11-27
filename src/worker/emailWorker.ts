@@ -32,21 +32,31 @@ const queueName = "email";
 const worker = new Worker(
   queueName,
   async (job: Job) => {
-    if (job.name !== "send-reset-password") throw new Error("Unknown job");
-    const { to, resetUrl, userId } = job.data as {
-      to: string;
-      resetUrl: string;
-      userId: number | string;
-    };
+    console.log(`WORKER: got job ${job.id} name=${job.name} data=${JSON.stringify(job.data)}`);
+
+    if (job.name !== "send-reset-password") {
+      console.error("WORKER: unknown job name", job.name);
+      throw new Error("Unknown job");
+    }
+
+    const { to, resetUrl, userId } = job.data as { to: string; resetUrl: string; userId: number | string };
+
+    console.log("WORKER: about to build email payload", { to, userId, resetUrl });
 
     const subject = "Link Reset Password Anda";
     const text = `Anda menerima email... Link: ${resetUrl}`;
     const html = `<p>Anda menerima email...</p><p><a href="${resetUrl}">${resetUrl}</a></p>`;
 
+    // *critical log* right before calling sendEmail
+    console.log("WORKER: calling sendEmail()", { to, subject });
     await sendEmail({ to, subject, text, html });
-    console.log(`Email sent to ${to} userId=${userId}`);
+    console.log(`WORKER: sendEmail returned for ${to} userId=${userId}`);
   },
-  { connection, concurrency: Number(process.env.EMAIL_WORKER_CONCURRENCY || 5) }
+  {
+    connection,
+    prefix: config.queuePrefix || process.env.QUEUE_PREFIX || "akuna",
+    concurrency: Number(process.env.EMAIL_WORKER_CONCURRENCY || 5),
+  }
 );
 
 // after creating worker:
