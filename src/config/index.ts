@@ -38,6 +38,7 @@ export const config = {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
     sendTimeoutMs: process.env.EMAIL_TIMEOUT,
+    fromName: process.env.EMAIL_FROM_NAME || "Akuna",
   },
   biteship: {
     apiKey: process.env.BITESHIP_API_KEY,
