@@ -27,7 +27,7 @@ console.log(
 );
 console.log("====================");
 
-const queueName = "akuna";
+const queueName = "email";
 
 const worker = new Worker(
   queueName,
