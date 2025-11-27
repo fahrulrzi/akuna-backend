@@ -32,7 +32,7 @@ export const isAdmin = (
   }
 
   // Cek apakah role user adalah 'admin'
-  if (req.user.role !== "admin") {
+  if (req.user.role !== "admin" && req.user.role !== "owner") {
     res
       .status(403)
       .json({ message: "Akses ditolak. Hanya admin yang diizinkan." });

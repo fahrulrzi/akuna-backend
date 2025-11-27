@@ -16,7 +16,7 @@ router.post(
   "/",
   isAuthenticated,
   upload.single("thumbnail"),
-  // isAdmin,
+  isAdmin,
   createBlog
 );
 
@@ -27,14 +27,14 @@ router.put(
   "/:id",
   isAuthenticated,
   upload.single("thumbnail"),
-  // isAdmin,
+  isAdmin,
   updateBlog
 );
 
 router.delete(
   "/:id", 
   isAuthenticated, 
-  // isAdmin, 
+  isAdmin, 
   deleteBlog
 );
 

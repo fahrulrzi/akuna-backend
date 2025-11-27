@@ -11,7 +11,7 @@ export const createBlog = async (req: Request, res: Response) => {
     if (!author || !title || !content) {
       return res.status(400).json({
         success: false,
-        message: "Title dan content wajib diisi.",
+        message: "Author, Title dan Content wajib diisi.",
         data: null,
       });
     }
@@ -49,7 +49,7 @@ export const createBlog = async (req: Request, res: Response) => {
 
 export const getBlogs = async (_req: Request, res: Response) => {
   try {
-    const blogs = await Blog.findAll({ order: [["createdAt", "DESC"]] });
+    const blogs = await Blog.findAll({ order: [["created_at", "DESC"]] });
     return res.status(200).json({
       success: true,
       message: "Data blog berhasil diambil.",
