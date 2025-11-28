@@ -59,6 +59,34 @@ export class Product extends Model {
   })
   declare stock: number;
 
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  })
+  declare weight: number;
+
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  })
+  declare length: number;
+
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  })
+  declare width: number;
+
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  })
+  declare height: number;
+
   @ForeignKey(() => Category)
   @Column({
     type: DataType.INTEGER,
@@ -69,4 +97,3 @@ export class Product extends Model {
   @BelongsTo(() => Category, "categoryId")
   category!: Category;
 }
-

@@ -12,7 +12,17 @@ interface AuthRequest extends Request {
 export const addProduct = async (req: Request, res: Response) => {
   try {
     // Destructure setelah validasi
-    const { name, categoryId, description, price, stock } = req.body || {};
+    const {
+      name,
+      categoryId,
+      description,
+      price,
+      stock,
+      weight,
+      length,
+      width,
+      height,
+    } = req.body || {};
     const files = req.files as Express.Multer.File[];
 
     // Validasi field wajib
@@ -52,6 +62,10 @@ export const addProduct = async (req: Request, res: Response) => {
       description: description || "",
       price: parseFloat(price),
       stock: stock ? parseInt(stock) : 0,
+      weight: weight ? parseInt(weight) : 0,
+      length: length ? parseInt(length) : 0,
+      width: width ? parseInt(width) : 0,
+      height: height ? parseInt(height) : 0,
       images: imageUrls,
       imageKeys: imageKeys,
     });
@@ -174,8 +188,18 @@ export const getProductsByCategory = async (req: Request, res: Response) => {
 export const updateProduct = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, categoryId, description, price, stock, deleteImages } =
-      req.body;
+    const {
+      name,
+      categoryId,
+      description,
+      price,
+      stock,
+      deleteImages,
+      weight,
+      length,
+      width,
+      height,
+    } = req.body;
     const files = req.files as any[];
 
     const product = await Product.findByPk(id);
@@ -248,6 +272,10 @@ export const updateProduct = async (req: Request, res: Response) => {
         description !== undefined ? description : product.description,
       price: price ? parseFloat(price) : product.price,
       stock: stock !== undefined ? parseInt(stock) : product.stock,
+      weight: weight ? parseInt(weight) : product.weight,
+      length: length ? parseInt(length) : product.length,
+      width: width ? parseInt(width) : product.width,
+      height: height ? parseInt(height) : product.height,
       images: currentImages,
       imageKeys: currentImageKeys,
     });
