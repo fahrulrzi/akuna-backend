@@ -3,9 +3,7 @@ import {
   getProfile, 
   updateProfile, 
   deleteProfile, 
-  changePassword,
-  getUserOrders,
-  getUserOrderDetail
+  changePassword
 } from '../controllers/user.controller.js';
 import { isAuthenticated } from '../middlewares/auth.middleware.js';
 import { applyForAffiliate } from '../controllers/affiliate.controller.js';
@@ -18,7 +16,5 @@ router.get('/me', isAuthenticated, getProfile);
 router.put('/me', isAuthenticated, updateProfile); 
 router.delete('/me', isAuthenticated, deleteProfile);
 router.post('/me/password', isAuthenticated, changePassword);
-router.get('/orders', isAuthenticated, getUserOrders);
-router.get('/orders/:orderId', isAuthenticated, getUserOrderDetail);
 
 export default router;
