@@ -200,7 +200,7 @@ export const updateProduct = async (req: Request, res: Response) => {
       width,
       height,
     } = req.body;
-    const files = req.files as any[];
+    const files = req.files as Express.Multer.File[];
 
     const product = await Product.findByPk(id);
 
