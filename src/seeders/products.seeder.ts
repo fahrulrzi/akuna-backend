@@ -9,6 +9,10 @@ export const productSeeder = async () => {
       description:
         "Green tea rich in antioxidants helps prevent hair loss by inhibiting DHT and promoting hair regrowth.",
       categoryName: "Shampoo Bar",
+      weight: 100, // gram
+      length: 7,
+      width: 7,
+      height: 3,
     },
     {
       name: "Mineral Rich Moringa Shampoo Bar",
@@ -16,6 +20,10 @@ export const productSeeder = async () => {
       description:
         "Moringa, high in vitamins and minerals, stimulates hair growth and ensures a healthy scalp.",
       categoryName: "Shampoo Bar",
+      weight: 100,
+      length: 7,
+      width: 7,
+      height: 3,
     },
     {
       name: "Exfoliating Papaya Shampoo Bar",
@@ -23,6 +31,10 @@ export const productSeeder = async () => {
       description:
         "Papaya enzymes gently exfoliate the scalp, promoting healthy hair growth.",
       categoryName: "Shampoo Bar",
+      weight: 100,
+      length: 7,
+      width: 7,
+      height: 3,
     },
     {
       name: "Clarifying Shampoo : First Rescue",
@@ -30,6 +42,10 @@ export const productSeeder = async () => {
       description:
         "Deep-cleansing shampoo that removes buildup and impurities, leaving hair refreshed and clean.",
       categoryName: "Clarifying Shampoo",
+      weight: 250,
+      length: 15,
+      width: 5,
+      height: 5,
     },
     {
       name: "Clarifying Shampoo : No Salt",
@@ -37,6 +53,10 @@ export const productSeeder = async () => {
       description:
         "Gentle clarifying shampoo without salt, ideal for sensitive scalps and daily use.",
       categoryName: "Clarifying Shampoo",
+      weight: 250,
+      length: 15,
+      width: 5,
+      height: 5,
     },
     {
       name: "Akuna Botanical Clarifying Shampoo Unstrip for Dry Dehydrated Hair Sensitive Scalp",
@@ -44,6 +64,10 @@ export const productSeeder = async () => {
       description:
         "Moisturizing clarifying shampoo designed for dry and dehydrated hair, gentle on sensitive scalps.",
       categoryName: "Clarifying Shampoo",
+      weight: 250,
+      length: 15,
+      width: 5,
+      height: 5,
     },
     {
       name: "Darken Blue Flower Soap Bar",
@@ -51,6 +75,10 @@ export const productSeeder = async () => {
       description:
         "Natural soap bar with blue flower extract for gentle cleansing and skin nourishment.",
       categoryName: "Solid Soap",
+      weight: 100,
+      length: 7,
+      width: 7,
+      height: 3,
     },
     {
       name: "Cinnamon Soap Bar",
@@ -58,6 +86,10 @@ export const productSeeder = async () => {
       description:
         "Aromatic cinnamon soap bar with warming properties and natural cleansing benefits.",
       categoryName: "Solid Soap",
+      weight: 100,
+      length: 7,
+      width: 7,
+      height: 3,
     },
     {
       name: "Sandalwood Soap Bar",
@@ -65,6 +97,10 @@ export const productSeeder = async () => {
       description:
         "Luxurious sandalwood soap bar with calming fragrance and skin-soothing properties.",
       categoryName: "Solid Soap",
+      weight: 100,
+      length: 7,
+      width: 7,
+      height: 3,
     },
     {
       name: "Cinci Conditioner Bar",
@@ -72,6 +108,10 @@ export const productSeeder = async () => {
       description:
         "Solid conditioner bar for soft, manageable hair without plastic packaging.",
       categoryName: "Conditioner",
+      weight: 100,
+      length: 7,
+      width: 7,
+      height: 3,
     },
     {
       name: "Lime Patchouli Daily Light Shampoo",
@@ -79,6 +119,10 @@ export const productSeeder = async () => {
       description:
         "Lightweight daily shampoo with refreshing lime and earthy patchouli for everyday hair care.",
       categoryName: "Daily Light",
+      weight: 250,
+      length: 15,
+      width: 5,
+      height: 5,
     },
     {
       name: "Lime Patchouli Daily Light Conditioner",
@@ -86,6 +130,10 @@ export const productSeeder = async () => {
       description:
         "Lightweight daily conditioner with lime and patchouli for soft, manageable hair.",
       categoryName: "Daily Light",
+      weight: 250,
+      length: 15,
+      width: 5,
+      height: 5,
     },
     {
       name: "Lavender Geranium Daily Light Conditioner",
@@ -93,6 +141,10 @@ export const productSeeder = async () => {
       description:
         "Lightweight conditioner with calming lavender and geranium for daily use.",
       categoryName: "Daily Light",
+      weight: 250,
+      length: 15,
+      width: 5,
+      height: 5,
     },
     {
       name: "Akuna Botanical Perfume Balm - Astronout Dream",
@@ -100,6 +152,10 @@ export const productSeeder = async () => {
       description:
         "Solid perfume balm with a dreamy, celestial fragrance that transports you to the stars.",
       categoryName: "Perfume Balm",
+      weight: 30,
+      length: 5,
+      width: 5,
+      height: 2,
     },
     {
       name: "Akuna Botanical Perfume Balm - Bliss",
@@ -107,6 +163,10 @@ export const productSeeder = async () => {
       description:
         "Solid perfume balm with a blissful, uplifting scent that brings joy and positivity.",
       categoryName: "Perfume Balm",
+      weight: 30,
+      length: 5,
+      width: 5,
+      height: 2,
     },
     {
       name: "Akuna Botanical Perfume Balm - Jakarta Diversity",
@@ -114,14 +174,22 @@ export const productSeeder = async () => {
       description:
         "Solid perfume balm celebrating the diverse scents of Jakarta with a unique aromatic blend.",
       categoryName: "Perfume Balm",
+      weight: 30,
+      length: 5,
+      width: 5,
+      height: 2,
     },
   ];
 
   for (const product of products) {
-    const category = await Category.findOne({ where: { name: product.categoryName } });
+    const category = await Category.findOne({
+      where: { name: product.categoryName },
+    });
 
     if (!category) {
-      console.log(`Category ${product.categoryName} not found. Skipping product ${product.name}.`);
+      console.log(
+        `Category ${product.categoryName} not found. Skipping product ${product.name}.`
+      );
       continue;
     }
 
@@ -132,6 +200,10 @@ export const productSeeder = async () => {
         price: product.price,
         description: product.description ?? "",
         stock: 50,
+        weight: product.weight,
+        length: product.length,
+        width: product.width,
+        height: product.height,
         images: [],
         imageKeys: [],
         categoryId: category.id,
