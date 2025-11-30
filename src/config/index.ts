@@ -42,7 +42,7 @@ export const config = {
   },
   biteship: {
     apiKey: process.env.BITESHIP_API_KEY,
-    originAreaId: process.env.BITESHIP_ORIGIN_AREA_ID,
+    originPostalCode: process.env.BITESHIP_ORIGIN_POSTAL_CODE || "55281",
     baseUrl: process.env.BITESHIP_BASE_URL || "https://api.biteship.com",
   },
   objectStorage: {

@@ -32,21 +32,23 @@ export const searchAreas = async (req: Request, res: Response) => {
 
 export const getRates = async (req: Request, res: Response) => {
   try {
-    const { destination_area_id, items } = req.body;
 
-    if (!destination_area_id || !items || items.length === 0) {
+    const { destination_postal_code, items, couriers } = req.body;
+    if (!destination_postal_code || !items || items.length === 0) {
        return res.status(400).json({
           success: false, 
-          message: "Area tujuan dan items (berat) diperlukan." 
+          message: "Postal code tujuan dan berat item diperlukan." 
        });
     }
 
     const payload = {
-      origin_area_id: config.biteship.originAreaId,
-      destination_area_id: destination_area_id,
+      origin_postal_code: parseInt(config.biteship.originPostalCode),       
+      destination_postal_code: parseInt(destination_postal_code), 
       items: items,
-      couriers: "jne,sicepat,gojek,grab,anteraja", //opsonal
+      couriers: couriers || "jne,sicepat,gojek,grab,anteraja,paxel", 
     };
+
+    console.log("Payload to Biteship:", payload); // Debugging
 
     const data = await biteshipClient.getRates(payload);
 
@@ -55,11 +57,14 @@ export const getRates = async (req: Request, res: Response) => {
       message: "Data rates berhasil diambil.",
       data,
     });
-  } catch (error) {
+
+  } catch (error: any) {
+    const errorData = error.data || error;
+    console.error("Biteship Error:", errorData);
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server.",
-      data: error,
+      data: errorData, 
     });
   }
 };
