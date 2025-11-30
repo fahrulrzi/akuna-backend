@@ -5,6 +5,7 @@ export const settingsSeeder = async () => {
     { key: "affiliate_commission_rate", value: "10" },
     { key: "max_affiliate_payout", value: "500000" },
     { key: "min_withdrawal", value: "50000" },
+    { key: "postal_code", value: "55281" },
   ];
 
   for (const settings of defaultSettings) {

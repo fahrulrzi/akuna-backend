@@ -70,7 +70,7 @@ const startServer = async () => {
     app.use("/api/blogs", blogRoutes);
     app.use("/api/delivery", deliveryRoutes);
     app.use("/api/payments", paymentRoutes);
-    app.use("/api/xendit", xenditRoutes);
+    app.use("/api/checkout", xenditRoutes);
     app.use("/api/cart", cartRoutes);
     app.use("/api/affiliate", affiliateRoutes);
     app.use("/api/settings", settingsRoutes);

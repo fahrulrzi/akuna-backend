@@ -1,4 +1,3 @@
-import crypto from "crypto";
 import type { Request, Response } from "express";
 import { Product } from "../models/Product.js";
 import { User } from "../models/User.js";
@@ -6,6 +5,12 @@ import { xenditBalance, xenditInvoice } from "../config/xendit.js";
 import { Transaction } from "../models/Transaction.js";
 import { biteshipClient } from "../utils/biteship.js";
 import { config } from "../config/index.js";
+import { Setting } from "../models/Setting.js";
+import {
+  BiteshipRatesResponse,
+  ShippingDetails,
+  ShippingItems,
+} from "../types/delivery.type.js";
 
 // Generate unique external ID
 const generateExternalId = (): string => {
@@ -14,16 +19,25 @@ const generateExternalId = (): string => {
   return `INV-${timestamp}-${random}`;
 };
 
-// Create Invoice (Payment)
-export const createXenditInvoice = async (req: Request, res: Response) => {
-  try {
-    const userId = (req as any).user.id;
-    const { products, paymentMethods, description, shipping_cost, shipping_details } = req.body;
+interface AuthRequest extends Request {
+  user?: { id: number; role: string };
+}
 
-    if (!products || !Array.isArray(products) || products.length === 0) {
+// Create Invoice (Payment)
+export const createXenditInvoice = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const { products, payment_methods, postal_code, courier_code } = req.body;
+
+    if (
+      !products ||
+      !Array.isArray(products) ||
+      products.length === 0 ||
+      courier_code === undefined
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Products array is required",
+        message: "Products and courier are required.",
       });
     }
 
@@ -31,6 +45,15 @@ export const createXenditInvoice = async (req: Request, res: Response) => {
     let totalAmount = 0;
     const transactionProducts = [];
     const items = [];
+    const shippingItems: ShippingItems = {
+      name: "",
+      quantity: 1,
+      value: 0,
+      length: 0,
+      width: 0,
+      height: 0,
+      weight: 0,
+    };
 
     for (const item of products) {
       const product = await Product.findByPk(item.productId);
@@ -50,10 +73,6 @@ export const createXenditInvoice = async (req: Request, res: Response) => {
 
       const itemTotal = Number(product.price) * item.quantity;
       totalAmount += itemTotal;
-      
-      if (shipping_cost) {
-        totalAmount += Number(shipping_cost);
-    }
 
       transactionProducts.push({
         productId: product.id,
@@ -68,6 +87,23 @@ export const createXenditInvoice = async (req: Request, res: Response) => {
         quantity: item.quantity,
         price: Number(product.price),
       });
+
+      //! logic ngakalin shipping items biar ongkir ga mahal
+
+      shippingItems.name = shippingItems.name
+        ? product.name
+        : shippingItems.name + ", " + product.name;
+
+      shippingItems.value = totalAmount;
+      shippingItems.weight += Number(product.weight) * item.quantity;
+
+      shippingItems.length =
+        shippingItems.length < Number(product.length) * item.quantity
+          ? Number(product.length) * item.quantity
+          : shippingItems.length;
+
+      shippingItems.height += Number(product.height) * item.quantity;
+      shippingItems.width += Number(product.width);
     }
 
     // Get user
@@ -79,6 +115,35 @@ export const createXenditInvoice = async (req: Request, res: Response) => {
       });
     }
 
+    const originPostalCode = await Setting.findOne({
+      where: { key: "postal_code" },
+    });
+
+    const payloadShipping: ShippingDetails = {
+      origin_postal_code: parseInt(originPostalCode?.value || "55281"),
+      destination_postal_code: parseInt(postal_code || "55281"),
+      items: shippingItems ? [shippingItems] : [],
+      couriers: courier_code,
+    };
+
+    const shippingRes: BiteshipRatesResponse = await biteshipClient.getRates(
+      payloadShipping
+    );
+    let shipping_cost = 0;
+    let shipping_details = {}; //? bingung isi apa, kek perlu ga perlu, di fe jg ga ada detail lain sbgnya
+
+    for (const resItem of shippingRes.pricing) {
+      if (
+        resItem.courier_code === courier_code &&
+        resItem.shipping_type === "parcel"
+      ) {
+        shipping_cost = resItem.price;
+        // shipping_details = resItem;
+      }
+    }
+
+    totalAmount += shipping_cost;
+
     // Generate external ID
     const externalId = generateExternalId();
 
@@ -89,7 +154,7 @@ export const createXenditInvoice = async (req: Request, res: Response) => {
       products: transactionProducts,
       totalAmount,
       status: "pending",
-      shippingCost: Number(shipping_cost) || 0, 
+      shippingCost: Number(shipping_cost) || 0,
       shippingDetails: shipping_details,
     });
 
@@ -98,7 +163,7 @@ export const createXenditInvoice = async (req: Request, res: Response) => {
       externalId: externalId,
       amount: totalAmount,
       payerEmail: (user as any).email,
-      description: description || `Payment for ${externalId}`,
+      description: `Payment for ${externalId}`,
       invoiceDuration: 86400, // 24 hours
       currency: "IDR",
       items: items,
@@ -107,8 +172,8 @@ export const createXenditInvoice = async (req: Request, res: Response) => {
     };
 
     // Set payment methods if specified
-    if (paymentMethods && Array.isArray(paymentMethods)) {
-      invoiceData.paymentMethods = paymentMethods;
+    if (payment_methods && Array.isArray(payment_methods)) {
+      invoiceData.paymentMethods = payment_methods;
     }
 
     // Create invoice via Xendit
@@ -144,11 +209,11 @@ export const createXenditInvoice = async (req: Request, res: Response) => {
 
 // Handle Xendit webhook/callback
 export const handleXenditCallback = async (req: Request, res: Response) => {
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  console.log("🔔 XENDIT WEBHOOK RECEIVED!");
-  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  console.log("📦 Body:", JSON.stringify(req.body, null, 2));
-  console.log("📋 Headers:", JSON.stringify(req.headers, null, 2));
+  // console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  // console.log("🔔 XENDIT WEBHOOK RECEIVED!");
+  // console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  // console.log("📦 Body:", JSON.stringify(req.body, null, 2));
+  // console.log("📋 Headers:", JSON.stringify(req.headers, null, 2));
 
   try {
     // Verify callback token
@@ -204,7 +269,7 @@ export const handleXenditCallback = async (req: Request, res: Response) => {
       paymentType: data.payment_method || data.payment_channel,
     });
 
-    console.log(`✅ Transaction ${externalId} updated to ${newStatus}`);
+    // console.log(`✅ Transaction ${externalId} updated to ${newStatus}`);
 
     // Update stock if payment success
     if (newStatus === "success") {
@@ -223,44 +288,46 @@ export const handleXenditCallback = async (req: Request, res: Response) => {
         }
       }
       try {
-          console.log("🚚 Preparing shipment with Biteship...");
-          const shipDetails = (transaction as any).shippingDetails; 
-          
-          const biteshipItems = (transaction.products as any[]).map((p: any) => ({
-              name: p.productName,
-              value: p.price,
-              quantity: p.quantity,
-              weight: p.weight
-          }));
+        console.log("🚚 Preparing shipment with Biteship...");
+        const shipDetails = (transaction as any).shippingDetails;
 
-          if (shipDetails) {
-             const biteshipPayload = {
-                shipper_contact_name: "Akuna Store",
-                shipper_contact_phone: "081222225862",
-                origin_postal_code: parseInt(config.biteship.originPostalCode),
+        const biteshipItems = (transaction.products as any[]).map((p: any) => ({
+          name: p.productName,
+          value: p.price,
+          quantity: p.quantity,
+          weight: p.weight,
+        }));
 
-                destination_contact_name: shipDetails.recipient.name,
-                destination_contact_phone: shipDetails.recipient.phone,
-                destination_address: shipDetails.recipient.address,
-                destination_postal_code: parseInt(shipDetails.recipient.postal_code),
-                destination_note: shipDetails.recipient.note,
+        if (shipDetails) {
+          const biteshipPayload = {
+            shipper_contact_name: "Akuna Store",
+            shipper_contact_phone: "081222225862",
+            origin_postal_code: parseInt(config.biteship.originPostalCode),
 
-                courier_company: shipDetails.shipping.courier_company,
-                courier_type: shipDetails.shipping.courier_type,
-                delivery_type: "now",
-                items: biteshipItems
-             };
+            destination_contact_name: shipDetails.recipient.name,
+            destination_contact_phone: shipDetails.recipient.phone,
+            destination_address: shipDetails.recipient.address,
+            destination_postal_code: parseInt(
+              shipDetails.recipient.postal_code
+            ),
+            destination_note: shipDetails.recipient.note,
 
-             const shipRes = await biteshipClient.createOrder(biteshipPayload);
-             console.log(`✅ Biteship Order Created: ${shipRes.id}`);
+            courier_company: shipDetails.shipping.courier_company,
+            courier_type: shipDetails.shipping.courier_type,
+            delivery_type: "now",
+            items: biteshipItems,
+          };
 
-             await transaction.update({
-                 trackingId: shipRes.id,
-                 courierResi: shipRes.courier.waybill_id
-             });
-          }
+          const shipRes = await biteshipClient.createOrder(biteshipPayload);
+          console.log(`✅ Biteship Order Created: ${shipRes.id}`);
+
+          await transaction.update({
+            trackingId: shipRes.id,
+            courierResi: shipRes.courier.waybill_id,
+          });
+        }
       } catch (shipError) {
-          console.error("❌ Biteship callback error:", shipError);
+        console.error("❌ Biteship callback error:", shipError);
       }
     }
 
@@ -305,10 +372,10 @@ export const getXenditBalance = async (req: Request, res: Response) => {
 };
 
 // Get invoice by external ID
-export const getInvoiceStatus = async (req: Request, res: Response) => {
+export const getInvoiceStatus = async (req: AuthRequest, res: Response) => {
   try {
     const { externalId } = req.params;
-    const userId = (req as any).user.id;
+    const userId = req.user?.id;
 
     const transaction = await Transaction.findOne({
       where: { orderId: externalId, userId },

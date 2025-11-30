@@ -61,11 +61,11 @@ export class Transaction extends Model {
   })
   declare status: "pending" | "success" | "failed" | "expired" | "cancelled";
 
-  @Column({
-    type: DataType.STRING,
-    allowNull: true,
-  })
-  declare paymentType: string;
+  // @Column({
+  //   type: DataType.STRING,
+  //   allowNull: true,
+  // })
+  // declare paymentType: string;
 
   @Column({
     type: DataType.STRING,
