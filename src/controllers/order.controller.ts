@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { User} from "../models/User.js";
 import { Transaction } from "../models/Transaction.js";
 import { TransactionItem } from "../models/TransactionItem.js";
+import { Product } from "../models/Product.js";
 
 interface AuthRequest extends Request {
   user?: { id: number; role: string };
@@ -23,33 +24,43 @@ export const getUserOrders = async (req: AuthRequest, res: Response) => {
       order: [["createdAt", "DESC"]],
     });
 
-    const data = transactions.map((tx) => {
-      const t: any = tx;
-      let firstProduct = null;
-      
-      if (t.items && (t.items || []).length > 0) {
-        const item = t.items[0];
-        firstProduct = {
-          name: item.productName,
-          quantity: item.quantity,
-          price: Number(item.price),
-        };
-      } else if (t.products && (t.products || []).length > 0) {
-        const prod = t.products[0];
-        firstProduct = {
-          name: prod.productName,
-          quantity: prod.quantity,
-          price: prod.price,
-        };
-      }
+    const data = await Promise.all(
+      transactions.map(async (tx) => {
+        const t: any = tx;
+        let firstProduct = null;
 
-      return {
-        orderId: t.orderId,
-        product: firstProduct,
-        status: t.status,
-        total: Number(t.totalAmount),
-      };
-    });
+        if (t.items && (t.items || []).length > 0) {
+          const item = t.items[0];
+          const product = await Product.findByPk(item.productId, {
+            attributes: ["id", "name", "images"],
+          });
+          firstProduct = {
+            name: item.productName,
+            quantity: item.quantity,
+            price: Number(item.price),
+            image: product?.images?.[0] ?? null,
+          };
+        } else if (t.products && (t.products || []).length > 0) {
+          const prod = t.products[0];
+          const product = await Product.findByPk(prod.productId, {
+            attributes: ["id", "name", "images"],
+          });
+          firstProduct = {
+            name: prod.productName,
+            quantity: prod.quantity,
+            price: prod.price,
+            image: product?.images?.[0] ?? null,
+          };
+        }
+
+        return {
+          orderId: t.orderId,
+          product: firstProduct,
+          status: t.status,
+          total: Number(t.totalAmount),
+        };
+      })
+    );
 
     res.status(200).json({
       success: true,
@@ -92,6 +103,7 @@ export const getUserOrderDetail = async (req: AuthRequest, res: Response) => {
         {
           model: TransactionItem,
           as: "items",
+          required: false,
         },
       ],
     });
@@ -105,14 +117,50 @@ export const getUserOrderDetail = async (req: AuthRequest, res: Response) => {
 
     const t: any = transaction;
 
-    const products = (t.items || []).map((it: any) => ({
-      productName: it.productName,
-      quantity: it.quantity,
-      price: Number(it.price),
-      total: Number(it.subtotal),
-    }));
+    let productsList = [];
+    if (t.items && (t.items || []).length > 0) {
+      productsList = t.items.map((it: any) => ({
+        productName: it.productName,
+        quantity: it.quantity,
+        price: Number(it.price),
+        total: Number(it.subtotal),
+      }));
+    } else if (t.products && (t.products || []).length > 0) {
+      productsList = t.products.map((p: any) => ({
+        productName: p.productName,
+        quantity: p.quantity,
+        price: p.price,
+        total: p.price * p.quantity,
+      }));
+    }
 
-    const totalAmount = products.reduce((sum: number, p: any) => sum + Number(p.total), 0);
+    const productsWithImages = await Promise.all(
+      productsList.map(async (prod: any) => {
+        let productId = null;
+        if (t.items && (t.items || []).length > 0) {
+          const item = t.items.find((it: any) => it.productName === prod.productName);
+          productId = item?.productId;
+        } else if (t.products && (t.products || []).length > 0) {
+          const product = t.products.find((p: any) => p.productName === prod.productName);
+          productId = product?.productId;
+        }
+
+        let image = null;
+        if (productId) {
+          const product = await Product.findByPk(productId, {
+            attributes: ["images"],
+          });
+          image = product?.images?.[0] ?? null;
+        }
+
+        return {
+          ...prod,
+          image,
+        };
+      })
+    );
+
+    const totalAmount = productsWithImages.reduce((sum: number, p: any) => sum + Number(p.total), 0);
 
     const response = {
       orderId: t.orderId,
@@ -126,7 +174,7 @@ export const getUserOrderDetail = async (req: AuthRequest, res: Response) => {
         postcode: (t.user as any)?.postcode ?? null,
         country: (t.user as any)?.country ?? null,
       },
-      products,
+      products: productsWithImages,
       total: totalAmount,
       status: t.status,
     };
