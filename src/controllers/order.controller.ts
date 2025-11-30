@@ -17,6 +17,7 @@ export const getUserOrders = async (req: AuthRequest, res: Response) => {
         {
           model: TransactionItem,
           as: "items",
+          required: false,
         },
       ],
       order: [["createdAt", "DESC"]],
@@ -24,17 +25,27 @@ export const getUserOrders = async (req: AuthRequest, res: Response) => {
 
     const data = transactions.map((tx) => {
       const t: any = tx;
-      const firstProduct = (t.items || []).length > 0 ? (t.items || [])[0] : null;
+      let firstProduct = null;
+      
+      if (t.items && (t.items || []).length > 0) {
+        const item = t.items[0];
+        firstProduct = {
+          name: item.productName,
+          quantity: item.quantity,
+          price: Number(item.price),
+        };
+      } else if (t.products && (t.products || []).length > 0) {
+        const prod = t.products[0];
+        firstProduct = {
+          name: prod.productName,
+          quantity: prod.quantity,
+          price: prod.price,
+        };
+      }
 
       return {
         orderId: t.orderId,
-        product: firstProduct
-          ? {
-              name: firstProduct.productName,
-              quantity: firstProduct.quantity,
-              price: Number(firstProduct.price),
-            }
-          : null,
+        product: firstProduct,
         status: t.status,
         total: Number(t.totalAmount),
       };
