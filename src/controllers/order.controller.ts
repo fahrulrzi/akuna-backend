@@ -176,6 +176,7 @@ export const getUserOrderDetail = async (req: AuthRequest, res: Response) => {
       },
       products: productsWithImages,
       total: totalAmount,
+      snapRedirectUrl: t.snapRedirectUrl,
       status: t.status,
     };
 

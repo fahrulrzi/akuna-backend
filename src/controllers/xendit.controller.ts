@@ -188,7 +188,6 @@ export const createXenditInvoice = async (req: AuthRequest, res: Response) => {
     // Update transaction with invoice data
     await transaction.update({
       transactionId: invoice.id,
-      snapToken: invoice.invoiceUrl,
       snapRedirectUrl: invoice.invoiceUrl,
     });
 

@@ -61,11 +61,11 @@ export class Transaction extends Model {
   })
   declare status: "pending" | "success" | "failed" | "expired" | "cancelled";
 
-  // @Column({
-  //   type: DataType.STRING,
-  //   allowNull: true,
-  // })
-  // declare paymentType: string;
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+  })
+  declare paymentType: string;
 
   @Column({
     type: DataType.STRING,
@@ -73,11 +73,11 @@ export class Transaction extends Model {
   })
   declare transactionId: string;
 
-  @Column({
-    type: DataType.TEXT,
-    allowNull: true,
-  })
-  declare snapToken: string;
+  // @Column({
+  //   type: DataType.TEXT,
+  //   allowNull: true,
+  // })
+  // declare snapToken: string;
 
   @Column({
     type: DataType.TEXT,
