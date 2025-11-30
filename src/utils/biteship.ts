@@ -19,6 +19,7 @@ async function request(path: string, method: HttpMethod, body?: unknown) {
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
+    console.error("Biteship Error:", JSON.stringify(data, null, 2));
     throw { status: res.status, data };
   }
 
@@ -26,6 +27,10 @@ async function request(path: string, method: HttpMethod, body?: unknown) {
 }
 
 export const biteshipClient = {
+  searchAreas(query: string) {
+    return request(`/maps/areas?countries=ID&input=${encodeURIComponent(query)}&type=single`, "GET");
+  },
+
   getRates(payload: unknown) {
     return request("/rates/couriers", "POST", payload);
   },
@@ -38,5 +43,3 @@ export const biteshipClient = {
     return request(`/trackings/${orderId}`, "GET");
   },
 };
-
-
