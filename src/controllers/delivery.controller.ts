@@ -71,17 +71,54 @@ export const getRates = async (req: Request, res: Response) => {
 
 export const addOrder = async (req: Request, res: Response) => {
   try {
-    const data = await biteshipClient.createOrder(req.body);
+    const { recipient, shipping, items } = req.body;
+
+    if (!recipient || !shipping || !items) {
+      return res.status(400).json({ message: "Data order tidak lengkap." });
+    }
+
+    const biteshipPayload = {
+      // Data Akuna
+      shipper_contact_name: "Akuna",
+      shipper_contact_phone: "081222225862",
+      shipper_organization: "Akuna Indonesia",
+      
+      origin_contact_name: "Admin",
+      origin_contact_phone: "081222225862",
+      origin_address: "Kledokan CT XIX blok C no 14 Depok, Tempel, Caturtunggal, Kec. Depok, Kabupaten Sleman, Daerah Istimewa Yogyakarta",
+      origin_postal_code: parseInt(config.biteship.originPostalCode), // 55281
+
+      destination_contact_name: recipient.name,
+      destination_contact_phone: recipient.phone,
+      destination_contact_email: recipient.email || "",
+      destination_address: recipient.address,
+      destination_postal_code: parseInt(recipient.postal_code),
+      destination_note: recipient.note,
+
+      courier_company: shipping.courier_company,
+      courier_type: shipping.courier_type,
+      delivery_type: "now", // usually "now" or "later"
+
+      items: items
+    };
+
+    console.log("Creating Order to Biteship:", JSON.stringify(biteshipPayload, null, 2));
+
+    const data = await biteshipClient.createOrder(biteshipPayload);
+
     res.status(201).json({
       success: true,
-      message: "Order berhasil ditambahkan.",
+      message: "Order berhasil dibuat!",
       data,
     });
-  } catch (error) {
+
+  } catch (error: any) {
+    const errorData = error.data || error;
+    console.error("Biteship Order Error:", errorData);
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server.",
-      data: error,
+      data: errorData
     });
   }
 };
