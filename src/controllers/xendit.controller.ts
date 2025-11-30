@@ -4,6 +4,8 @@ import { Product } from "../models/Product.js";
 import { User } from "../models/User.js";
 import { xenditBalance, xenditInvoice } from "../config/xendit.js";
 import { Transaction } from "../models/Transaction.js";
+import { biteshipClient } from "../utils/biteship.js";
+import { config } from "../config/index.js";
 
 // Generate unique external ID
 const generateExternalId = (): string => {
@@ -16,7 +18,7 @@ const generateExternalId = (): string => {
 export const createXenditInvoice = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
-    const { products, paymentMethods, description } = req.body;
+    const { products, paymentMethods, description, shipping_cost, shipping_details } = req.body;
 
     if (!products || !Array.isArray(products) || products.length === 0) {
       return res.status(400).json({
@@ -48,12 +50,17 @@ export const createXenditInvoice = async (req: Request, res: Response) => {
 
       const itemTotal = Number(product.price) * item.quantity;
       totalAmount += itemTotal;
+      
+      if (shipping_cost) {
+        totalAmount += Number(shipping_cost);
+    }
 
       transactionProducts.push({
         productId: product.id,
         productName: product.name,
         quantity: item.quantity,
         price: Number(product.price),
+        weight: Number(product.weight),
       });
 
       items.push({
@@ -82,6 +89,8 @@ export const createXenditInvoice = async (req: Request, res: Response) => {
       products: transactionProducts,
       totalAmount,
       status: "pending",
+      shippingCost: Number(shipping_cost) || 0, 
+      shippingDetails: shipping_details,
     });
 
     // Prepare invoice data
@@ -212,6 +221,46 @@ export const handleXenditCallback = async (req: Request, res: Response) => {
           });
           console.log(`✅ Stock updated for product ${item.productId}`);
         }
+      }
+      try {
+          console.log("🚚 Preparing shipment with Biteship...");
+          const shipDetails = (transaction as any).shippingDetails; 
+          
+          const biteshipItems = (transaction.products as any[]).map((p: any) => ({
+              name: p.productName,
+              value: p.price,
+              quantity: p.quantity,
+              weight: p.weight
+          }));
+
+          if (shipDetails) {
+             const biteshipPayload = {
+                shipper_contact_name: "Akuna Store",
+                shipper_contact_phone: "081222225862",
+                origin_postal_code: parseInt(config.biteship.originPostalCode),
+
+                destination_contact_name: shipDetails.recipient.name,
+                destination_contact_phone: shipDetails.recipient.phone,
+                destination_address: shipDetails.recipient.address,
+                destination_postal_code: parseInt(shipDetails.recipient.postal_code),
+                destination_note: shipDetails.recipient.note,
+
+                courier_company: shipDetails.shipping.courier_company,
+                courier_type: shipDetails.shipping.courier_type,
+                delivery_type: "now",
+                items: biteshipItems
+             };
+
+             const shipRes = await biteshipClient.createOrder(biteshipPayload);
+             console.log(`✅ Biteship Order Created: ${shipRes.id}`);
+
+             await transaction.update({
+                 trackingId: shipRes.id,
+                 courierResi: shipRes.courier.waybill_id
+             });
+          }
+      } catch (shipError) {
+          console.error("❌ Biteship callback error:", shipError);
       }
     }
 

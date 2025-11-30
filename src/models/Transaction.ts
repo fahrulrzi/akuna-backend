@@ -85,6 +85,29 @@ export class Transaction extends Model {
   })
   declare snapRedirectUrl: string;
 
+@Column({
+    type: DataType.DECIMAL(10, 2),
+  })
+  declare shippingCost: number;
+
+  @Column({
+    type: DataType.JSON, 
+    allowNull: true,
+  })
+  declare shippingDetails: object;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+  })
+  declare trackingId: string;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+  })
+  declare courierResi: string;
+
   @BelongsTo(() => User, "userId")
   user!: User;
 
