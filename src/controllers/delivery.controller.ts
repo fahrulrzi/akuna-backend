@@ -7,6 +7,7 @@ import {
   ShippingItems,
 } from "../types/delivery.type.js";
 import { Product } from "../models/Product.js";
+import { Setting } from "../models/Setting.js";
 
 interface ShippingRatesResponse {
   courier_name: string;
@@ -100,8 +101,12 @@ export const getRates = async (req: Request, res: Response) => {
       shippingItems.width += Number(product.width);
     }
 
+    const originPostalCode = await Setting.findOne({
+      where: { key: "postal_code" },
+    });
+
     const payload: ShippingDetails = {
-      origin_postal_code: parseInt(config.biteship.originPostalCode),
+      origin_postal_code: parseInt(originPostalCode?.value || "55281"),
       destination_postal_code: parseInt(postal_code),
       items: shippingItems ? [shippingItems] : [],
       couriers: couriers || "jne,sicepat,jnt",
@@ -113,14 +118,16 @@ export const getRates = async (req: Request, res: Response) => {
     const data: BiteshipRatesResponse = await biteshipClient.getRates(payload);
 
     for (const resData of data.pricing) {
-      results.push({
-        courier_name: resData.courier_name,
-        courier_code: resData.courier_code,
-        duration: resData.duration,
-        shipment_duration_range: resData.shipment_duration_range,
-        shipment_duration_unit: resData.shipment_duration_unit,
-        price: resData.price,
-      });
+      if (resData.shipping_type === "parcel") {
+        results.push({
+          courier_name: resData.courier_name,
+          courier_code: resData.courier_code,
+          duration: resData.duration,
+          shipment_duration_range: resData.shipment_duration_range,
+          shipment_duration_unit: resData.shipment_duration_unit,
+          price: resData.price,
+        });
+      }
     }
 
     res.status(200).json({

@@ -142,6 +142,12 @@ export const createXenditInvoice = async (req: AuthRequest, res: Response) => {
       }
     }
 
+    items.push({
+      name: "Shipping Cost",
+      quantity: 1,
+      price: shipping_cost,
+    });
+
     totalAmount += shipping_cost;
 
     // Generate external ID
