@@ -64,6 +64,13 @@ export class Product extends Model {
     allowNull: false,
     defaultValue: 0,
   })
+  declare sold: number;
+
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+  })
   declare weight: number;
 
   @Column({

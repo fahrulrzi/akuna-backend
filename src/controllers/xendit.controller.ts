@@ -226,7 +226,6 @@ export const handleXenditCallback = async (req: Request, res: Response) => {
     const xenditCallbackToken = process.env.XENDIT_CALLBACK_TOKEN;
 
     if (callbackToken !== xenditCallbackToken) {
-      console.log("❌ Invalid callback token");
       return res.status(401).json({
         success: false,
         message: "Invalid callback token",
@@ -283,13 +282,14 @@ export const handleXenditCallback = async (req: Request, res: Response) => {
         quantity: number;
       }>;
 
+
       for (const item of products) {
         const product = await Product.findByPk(item.productId);
         if (product) {
           await product.update({
             stock: product.stock - item.quantity,
+            sold: product.sold + item.quantity,
           });
-          console.log(`✅ Stock updated for product ${item.productId}`);
         }
       }
       try {
