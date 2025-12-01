@@ -15,7 +15,7 @@ router.put("/", isAuthenticated, isAdmin, approveAffiliate);
 
 // request share affiliate link
 router.get(
-  "/share/affiliate/:id",
+  "/share/:id",
   isAuthenticated,
   isAffiliate,
   shareProductAffiliate
