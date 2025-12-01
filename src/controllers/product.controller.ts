@@ -212,14 +212,16 @@ export const updateProduct = async (req: Request, res: Response) => {
       });
     }
 
-    const category = await Category.findByPk(categoryId);
+    if (categoryId !== undefined) {
+      const category = await Category.findByPk(categoryId);
 
-    if (!category) {
-      return res.status(400).json({
-        success: false,
-        message: "Kategori tidak ditemukan.",
-        data: null,
-      });
+      if (!category) {
+        return res.status(400).json({
+          success: false,
+          message: "Kategori tidak ditemukan.",
+          data: null,
+        });
+      }
     }
 
     let currentImages = product.images || [];
