@@ -34,12 +34,4 @@ router.put(
 );
 router.delete("/:id", isAuthenticated, isAdmin, deleteProduct);
 
-// request share affiliate link
-router.get(
-  "/share/affiliate/:id",
-  isAuthenticated,
-  isAffiliate,
-  shareProductAffiliate
-);
-
 export default router;
