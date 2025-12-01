@@ -14,6 +14,7 @@ export const addProduct = async (req: Request, res: Response) => {
     // Destructure setelah validasi
     const {
       name,
+      sku,
       categoryId,
       description,
       price,
@@ -58,6 +59,7 @@ export const addProduct = async (req: Request, res: Response) => {
 
     const newProduct = await Product.create({
       name,
+      sku,
       categoryId: parseInt(categoryId),
       description: description || "",
       price: parseFloat(price),
