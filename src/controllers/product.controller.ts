@@ -191,6 +191,7 @@ export const updateProduct = async (req: Request, res: Response) => {
     const {
       name,
       categoryId,
+      sku,
       description,
       price,
       stock,
@@ -269,6 +270,7 @@ export const updateProduct = async (req: Request, res: Response) => {
     // Update product
     await product.update({
       name: name || product.name,
+      sku: sku || product.sku,
       categoryId: categoryId ? parseInt(categoryId) : product.categoryId,
       description:
         description !== undefined ? description : product.description,

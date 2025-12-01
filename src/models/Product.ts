@@ -24,6 +24,12 @@ export class Product extends Model {
     type: DataType.STRING,
     allowNull: false,
   })
+  declare sku: string;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: false,
+  })
   declare name: string;
 
   @Column({
