@@ -5,6 +5,7 @@ export const productSeeder = async () => {
   const products = [
     {
       name: "DHT Blocker Green Tea Shampoo Bar",
+      sku: "DHT-GT-SB-001",
       price: 28000,
       description:
         "Green tea rich in antioxidants helps prevent hair loss by inhibiting DHT and promoting hair regrowth.",
@@ -16,6 +17,7 @@ export const productSeeder = async () => {
     },
     {
       name: "Mineral Rich Moringa Shampoo Bar",
+      sku: "MR-MG-SB-002",
       price: 47000,
       description:
         "Moringa, high in vitamins and minerals, stimulates hair growth and ensures a healthy scalp.",
@@ -27,6 +29,7 @@ export const productSeeder = async () => {
     },
     {
       name: "Exfoliating Papaya Shampoo Bar",
+      sku: "EX-PP-SB-003",
       price: 27000,
       description:
         "Papaya enzymes gently exfoliate the scalp, promoting healthy hair growth.",
@@ -38,6 +41,7 @@ export const productSeeder = async () => {
     },
     {
       name: "Clarifying Shampoo : First Rescue",
+      sku: "CL-FR-001",
       price: 76500,
       description:
         "Deep-cleansing shampoo that removes buildup and impurities, leaving hair refreshed and clean.",
@@ -49,6 +53,7 @@ export const productSeeder = async () => {
     },
     {
       name: "Clarifying Shampoo : No Salt",
+      sku: "CL-NS-002",
       price: 85500,
       description:
         "Gentle clarifying shampoo without salt, ideal for sensitive scalps and daily use.",
@@ -60,6 +65,7 @@ export const productSeeder = async () => {
     },
     {
       name: "Akuna Botanical Clarifying Shampoo Unstrip for Dry Dehydrated Hair Sensitive Scalp",
+      sku: "AK-CL-003",
       price: 76500,
       description:
         "Moisturizing clarifying shampoo designed for dry and dehydrated hair, gentle on sensitive scalps.",
@@ -71,6 +77,7 @@ export const productSeeder = async () => {
     },
     {
       name: "Darken Blue Flower Soap Bar",
+      sku: "DBF-SB-001",
       price: 40200,
       description:
         "Natural soap bar with blue flower extract for gentle cleansing and skin nourishment.",
@@ -82,6 +89,7 @@ export const productSeeder = async () => {
     },
     {
       name: "Cinnamon Soap Bar",
+      sku: "CIN-SB-002",
       price: 28750,
       description:
         "Aromatic cinnamon soap bar with warming properties and natural cleansing benefits.",
@@ -93,6 +101,7 @@ export const productSeeder = async () => {
     },
     {
       name: "Sandalwood Soap Bar",
+      sku: "SW-SB-003",
       price: 32200,
       description:
         "Luxurious sandalwood soap bar with calming fragrance and skin-soothing properties.",
@@ -104,6 +113,7 @@ export const productSeeder = async () => {
     },
     {
       name: "Cinci Conditioner Bar",
+      sku: "CCB-001",
       price: 31500,
       description:
         "Solid conditioner bar for soft, manageable hair without plastic packaging.",
@@ -115,6 +125,7 @@ export const productSeeder = async () => {
     },
     {
       name: "Lime Patchouli Daily Light Shampoo",
+      sku: "LP-DL-S-001",
       price: 62500,
       description:
         "Lightweight daily shampoo with refreshing lime and earthy patchouli for everyday hair care.",
@@ -126,6 +137,7 @@ export const productSeeder = async () => {
     },
     {
       name: "Lime Patchouli Daily Light Conditioner",
+      sku: "LP-DL-C-002",
       price: 55000,
       description:
         "Lightweight daily conditioner with lime and patchouli for soft, manageable hair.",
@@ -137,6 +149,7 @@ export const productSeeder = async () => {
     },
     {
       name: "Lavender Geranium Daily Light Conditioner",
+      sku: "LG-DL-C-003",
       price: 53500,
       description:
         "Lightweight conditioner with calming lavender and geranium for daily use.",
@@ -148,6 +161,7 @@ export const productSeeder = async () => {
     },
     {
       name: "Akuna Botanical Perfume Balm - Astronout Dream",
+      sku: "AK-PB-AD-001",
       price: 35500,
       description:
         "Solid perfume balm with a dreamy, celestial fragrance that transports you to the stars.",
@@ -159,6 +173,7 @@ export const productSeeder = async () => {
     },
     {
       name: "Akuna Botanical Perfume Balm - Bliss",
+      sku: "AK-PB-B-002",
       price: 45000,
       description:
         "Solid perfume balm with a blissful, uplifting scent that brings joy and positivity.",
@@ -170,6 +185,7 @@ export const productSeeder = async () => {
     },
     {
       name: "Akuna Botanical Perfume Balm - Jakarta Diversity",
+      sku: "AK-PB-JD-003",
       price: 36000,
       description:
         "Solid perfume balm celebrating the diverse scents of Jakarta with a unique aromatic blend.",
@@ -197,6 +213,7 @@ export const productSeeder = async () => {
       where: { name: product.name },
       defaults: {
         name: product.name,
+        sku: product.sku,
         price: product.price,
         description: product.description ?? "",
         stock: 50,
