@@ -9,12 +9,18 @@ interface AuthRequest extends Request {
   user?: { id: number; role: string };
 }
 
+interface formatedCategory {
+  id: number;
+  name: string;
+  slug: string;
+}
+
 interface formatedProduct {
   id: number;
   name: string;
   sku: string;
   images: string[];
-  categoryId: number;
+  category?: formatedCategory;
   description: string;
   price: number;
   stock: number;
@@ -109,12 +115,30 @@ export const getProducts = async (_req: Request, res: Response) => {
       order: [["createdAt", "DESC"]],
     });
 
+    if (products.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "Tidak ada produk ditemukan.",
+        data: [],
+      });
+    }
+
+    for (const product of products) {
+      await product.reload({ include: ["category"] });
+    }
+
     const productsFormatted: formatedProduct[] = products.map((product) => ({
       id: product.id,
       name: product.name,
       sku: product.sku,
       images: product.images,
-      categoryId: product.categoryId,
+      category: product.category
+        ? {
+            id: product.category.id,
+            name: product.category.name,
+            slug: product.category.slug,
+          }
+        : undefined,
       description: product.description,
       price: product.price,
       stock: product.stock,
@@ -123,6 +147,22 @@ export const getProducts = async (_req: Request, res: Response) => {
       width: product.width,
       height: product.height,
     }));
+
+    // const productsFormatted: formatedProduct[] = products.map((product) => ({
+    //   id: product.id,
+    //   name: product.name,
+    //   sku: product.sku,
+    //   images: product.images,
+    //   categoryId: product.categoryId,
+    //   category:
+    //   description: product.description,
+    //   price: product.price,
+    //   stock: product.stock,
+    //   weight: product.weight,
+    //   length: product.length,
+    //   width: product.width,
+    //   height: product.height,
+    // }));
 
     res.status(200).json({
       success: true,
@@ -154,12 +194,20 @@ export const getProductById = async (req: Request, res: Response) => {
       });
     }
 
+    const category = await Category.findByPk(product.categoryId);
+
+    const categoryFormatted: formatedCategory = {
+      id: category?.id || 0,
+      name: category?.name || "",
+      slug: category?.slug || "",
+    };
+
     const productFormatted: formatedProduct = {
       id: product.id,
       name: product.name,
       sku: product.sku,
       images: product.images,
-      categoryId: product.categoryId,
+      category: categoryFormatted,
       description: product.description,
       price: product.price,
       stock: product.stock,
@@ -218,12 +266,22 @@ export const getProductsByCategory = async (req: Request, res: Response) => {
       });
     }
 
+    for (const product of products) {
+      await product.reload({ include: ["category"] });
+    }
+
     const productsFormatted: formatedProduct[] = products.map((product) => ({
       id: product.id,
       name: product.name,
       sku: product.sku,
       images: product.images,
-      categoryId: product.categoryId,
+      category: product.category
+        ? {
+            id: product.category.id,
+            name: product.category.name,
+            slug: product.category.slug,
+          }
+        : undefined,
       description: product.description,
       price: product.price,
       stock: product.stock,
