@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import { User, UserRole } from "../models/User";
 import { Transaction } from "../models/Transaction";
-import { TransactionItem } from "../models/TransactionItem";
 
 interface AuthRequest extends Request {
   user?: { id: number; role: string };
@@ -98,11 +97,8 @@ export const getAllOrder = async (_req: AuthRequest, res: Response) => {
       include: [
         {
           model: User,
-          attributes: ["id", "name", "email", "phone"],
-        },
-        {
-          model: TransactionItem,
-          as: "items",
+          as: "user",
+          attributes: ["id", "name"],
         },
       ],
       order: [["createdAt", "DESC"]],
@@ -110,21 +106,27 @@ export const getAllOrder = async (_req: AuthRequest, res: Response) => {
 
     const data = transactions.map((tx) => {
       const t: any = tx;
-      const subtotal = (t.items || []).reduce(
-        (s: number, it: any) => s + Number(it.subtotal || it.price * it.quantity || 0),
-        0
-      );
+      
+      const productsList = t.products || [];
+      const shipDetails = t.shippingDetails || {};
+
+      let productSummary = "-";
+      if (productsList.length > 0) {
+        const first = productsList[0].productName;
+        const rest = productsList.length - 1;
+        productSummary = rest > 0 ? `${first}, +${rest} more` : first;
+      }
+
+      const customerName = t.user?.name || shipDetails.recipient?.name || "Customer";
 
       return {
         id: t.orderId,
+        product: productSummary,
         orderId: t.orderId,
         date: t.createdAt,
-        customerName: t.user?.name ?? null,
-        amount: Number(t.totalAmount),
-        status: t.status,
-        products: t.products ?? [],
-        items: t.items ?? [],
-        subtotal,
+        customerName: customerName,
+        amount: Number(t.totalAmount), 
+        status: t.status,              
       };
     });
 
@@ -134,6 +136,7 @@ export const getAllOrder = async (_req: AuthRequest, res: Response) => {
       data,
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server.",
@@ -146,28 +149,13 @@ export const getOrder = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
-    const whereClause = { orderId: id };
-
     const transaction = await Transaction.findOne({
-      where: whereClause,
+      where: { orderId: id },
       include: [
         {
           model: User,
-          attributes: [
-            "id",
-            "name",
-            "email",
-            "phone",
-            "address",
-            "city",
-            "state",
-            "postcode",
-            "country",
-          ],
-        },
-        {
-          model: TransactionItem,
-          as: "items",
+          as: "user",
+          attributes: ["id", "name", "email", "phone"],
         },
       ],
     });
@@ -180,48 +168,58 @@ export const getOrder = async (req: AuthRequest, res: Response) => {
     }
 
     const t: any = transaction;
+    
+    const productsData = t.products || [];
+    const shipDetails = t.shippingDetails || {};
+    const recipient = shipDetails.recipient || {};
+    const shipping = shipDetails.shipping || {};
 
-    const products = t.items?.map((it: any) => ({
-      productId: it.productId,
-      productName: it.productName,
-      quantity: it.quantity,
-      price: Number(it.price),
-      total: Number(it.subtotal),
-    })) || (t.products || []);
-
-    const subtotal = products.reduce((s: number, p: any) => s + Number(p.total || p.price * p.quantity || 0), 0);
-    const discount = 0;
-    const shippingRate = 0;
+    const shippingCost = Number(t.shippingCost) || 0;
+    const subtotal = productsData.reduce((acc: number, item: any) => acc + (Number(item.price) * Number(item.quantity)), 0);
 
     const response = {
       id: t.orderId,
       orderId: t.orderId,
       createdAt: t.createdAt,
+      
       customer: {
-        fullName: t.user?.name ?? null,
-        email: t.user?.email ?? null,
-        phone: t.user?.phone ?? null,
+        fullName: t.user?.name || recipient.name || "Customer",
+        email: t.user?.email || recipient.email || "-",
+        phone: t.user?.phone || recipient.phone || "-",
       },
+
       orderInfo: {
-        shipping: t.shippingProvider ?? null,
-        paymentMethod: t.paymentType ?? null,
+        shipping: shipping.courier_company 
+          ? `${shipping.courier_company.toUpperCase()} - ${shipping.courier_type}` 
+          : "N/A",
+        paymentMethod: t.paymentType || "Manual",
         status: t.status,
+        trackingId: t.trackingId,
+        resi: t.courierResi,
       },
+
       deliverTo: {
-        address: t.user?.address ?? null,
-        city: t.user?.city ?? null,
-        state: t.user?.state ?? null,
-        postcode: t.user?.postcode ?? null,
-        country: t.user?.country ?? null,
+        address: recipient.address,
+        postcode: recipient.postal_code,
+        note: recipient.note,
+        receiverName: recipient.name,
       },
+
       paymentInfo: {
-        method: t.paymentType ?? null,
-        transactionId: t.transactionId ?? null,
+        method: t.paymentType,
+        transactionId: t.transactionId,
       },
-      products,
-      subtotal,
-      discount,
-      shippingRate,
+
+      products: productsData.map((p: any) => ({
+        productName: p.productName,
+        price: Number(p.price),
+        quantity: Number(p.quantity),
+        total: Number(p.price) * Number(p.quantity),
+      })),
+
+      subtotal: subtotal,
+      discount: 0,
+      shippingRate: shippingCost,
       total: Number(t.totalAmount),
     };
 
@@ -230,6 +228,7 @@ export const getOrder = async (req: AuthRequest, res: Response) => {
       data: response,
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server.",
