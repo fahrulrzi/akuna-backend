@@ -131,7 +131,7 @@ export const deleteCategory = async (req: Request, res: Response) => {
 
 export const updateCategory = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { name, slug, description } = req.body;
+  const { name, slug} = req.body;
 
   try {
     const category = await Category.findByPk(id);

@@ -17,6 +17,7 @@ interface ShippingRatesResponse {
   shipment_duration_range?: string;
   shipment_duration_unit?: string;
   price: number;
+  type?: string;
 }
 
 export const searchAreas = async (req: Request, res: Response) => {
@@ -127,6 +128,7 @@ export const getRates = async (req: Request, res: Response) => {
           shipment_duration_range: resData.shipment_duration_range,
           shipment_duration_unit: resData.shipment_duration_unit,
           price: resData.price,
+          type: resData.type,
         });
       }
     }
