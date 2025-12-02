@@ -27,7 +27,12 @@ export class Category extends Model {
   })
   declare slug: string;
 
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+  })
+  declare imageUrl: string | null;
+
   @HasMany(() => Product, "categoryId")
   products!: Product[];
 }
-
