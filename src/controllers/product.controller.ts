@@ -9,6 +9,20 @@ interface AuthRequest extends Request {
   user?: { id: number; role: string };
 }
 
+interface formatedProduct {
+  name: string;
+  sku: string;
+  images: string[];
+  categoryId: number;
+  description: string;
+  price: number;
+  stock: number;
+  weight: number;
+  length: number;
+  width: number;
+  height: number;
+}
+
 export const addProduct = async (req: Request, res: Response) => {
   try {
     // Destructure setelah validasi
@@ -94,10 +108,24 @@ export const getProducts = async (_req: Request, res: Response) => {
       order: [["createdAt", "DESC"]],
     });
 
+    const productsFormatted: formatedProduct[] = products.map((product) => ({
+      name: product.name,
+      sku: product.sku,
+      images: product.images,
+      categoryId: product.categoryId,
+      description: product.description,
+      price: product.price,
+      stock: product.stock,
+      weight: product.weight,
+      length: product.length,
+      width: product.width,
+      height: product.height,
+    }));
+
     res.status(200).json({
       success: true,
       message: "Data produk berhasil diambil.",
-      data: products,
+      data: productsFormatted,
     });
   } catch (error) {
     res.status(500).json({
@@ -124,10 +152,24 @@ export const getProductById = async (req: Request, res: Response) => {
       });
     }
 
+    const productFormatted: formatedProduct = {
+      name: product.name,
+      sku: product.sku,
+      images: product.images,
+      categoryId: product.categoryId,
+      description: product.description,
+      price: product.price,
+      stock: product.stock,
+      weight: product.weight,
+      length: product.length,
+      width: product.width,
+      height: product.height,
+    };
+
     res.status(200).json({
       success: true,
       message: "Data produk berhasil diambil.",
-      data: product,
+      data: productFormatted,
     });
   } catch (error) {
     res.status(500).json({
@@ -173,10 +215,24 @@ export const getProductsByCategory = async (req: Request, res: Response) => {
       });
     }
 
+    const productsFormatted: formatedProduct[] = products.map((product) => ({
+      name: product.name,
+      sku: product.sku,
+      images: product.images,
+      categoryId: product.categoryId,
+      description: product.description,
+      price: product.price,
+      stock: product.stock,
+      weight: product.weight,
+      length: product.length,
+      width: product.width,
+      height: product.height,
+    }));
+
     res.status(200).json({
       success: true,
       message: "Data produk berhasil diambil.",
-      data: products,
+      data: productsFormatted,
     });
   } catch (error) {
     res.status(500).json({

@@ -1,23 +1,44 @@
 import type { Request, Response } from "express";
 import { User, UserRole } from "../models/User.js";
-import { AffiliateRequest } from "../models/AffiliateRequest.js";
 import { config } from "../config/index.js";
 import { Affiliate } from "../models/Affiliate.js";
+import { storageService } from "../services/storage.service.js";
 
 interface AuthRequest extends Request {
   user?: { id: number; role: string };
 }
 
+interface AffilateResponse {
+  bankType: string;
+  nameOnAccount: string;
+  accountNumber: string;
+  bankBookImageUrl: string;
+}
+
 export const getAffiliates = async (_req: AuthRequest, res: Response) => {
   try {
-    const affiliates = await AffiliateRequest.findAll({
-      include: [{ model: User, as: "user" }],
+    const affiliates = await Affiliate.findAll({
+      include: [
+        {
+          model: User,
+          attributes: ["id", "name", "email"],
+        },
+      ],
     });
+
+    const formattedAffiliates: AffilateResponse[] = affiliates.map(
+      (affiliate) => ({
+        bankType: affiliate.bankType,
+        nameOnAccount: affiliate.nameOnAccount,
+        accountNumber: affiliate.accountNumber,
+        bankBookImageUrl: affiliate.bankBookImageUrl,
+      })
+    );
 
     res.status(200).json({
       status: true,
       message: "Data affiliate berhasil diambil.",
-      data: affiliates,
+      data: formattedAffiliates,
     });
   } catch (error) {
     res.status(500).json({
@@ -28,8 +49,34 @@ export const getAffiliates = async (_req: AuthRequest, res: Response) => {
   }
 };
 
-export const applyForAffiliate = async (req: AuthRequest, res: Response) => {
+export const requestAffiliate = async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id;
+  const { bankType, nameOnAccount, accountNumber } = req.body;
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+
+  if (
+    bankType === undefined ||
+    nameOnAccount === undefined ||
+    accountNumber === undefined
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Semua field wajib diisi.",
+      data: null,
+    });
+  }
+
+  if (
+    !files ||
+    !files["bankBookImage"] ||
+    files["bankBookImage"].length === 0
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Gambar buku bank wajib diunggah.",
+      data: null,
+    });
+  }
 
   try {
     const user = await User.findByPk(userId);
@@ -51,44 +98,34 @@ export const applyForAffiliate = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // Cek jika user sudah menjadi affiliate
-    if (user.role === UserRole.AFFILIATE) {
-      return res.status(400).json({
-        success: false,
-        message: "Anda sudah menjadi affiliate.",
-        data: null,
-      });
-    }
+    const uploadResult = await storageService.uploadFile(
+      files["bankBookImage"][0],
+      "bank-books"
+    );
 
-    const existingRequest = await AffiliateRequest.findOne({
-      where: {
-        userId: user.id,
-        status: "pending",
-      },
-    });
-
-    if (existingRequest) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Anda sudah mengajukan permohonan affiliate. Silakan tunggu proses persetujuan.",
-        data: null,
-      });
-    }
-
-    // Buat permohonan affiliate baru
-    const newRequest = await AffiliateRequest.create({
+    const newAffiliate = await Affiliate.create({
       userId: user.id,
-      status: "pending",
+      referralCode: `AFF-${Date.now()}`,
+      bankType,
+      nameOnAccount,
+      accountNumber,
+      bankBookImageUrl: uploadResult.url,
+      bankBookImageKey: uploadResult.key,
     });
 
-    res.status(200).json({
+    await user.update({ role: UserRole.AFFILIATE });
+
+    const formatedAffilaite: AffilateResponse = {
+      bankType: newAffiliate.bankType,
+      nameOnAccount: newAffiliate.nameOnAccount,
+      accountNumber: newAffiliate.accountNumber,
+      bankBookImageUrl: newAffiliate.bankBookImageUrl,
+    };
+
+    res.status(201).json({
       success: true,
-      message: "Akun anda sedang dalam proses pengajuan affiliate.",
-      data: {
-        user,
-        affiliateRequest: newRequest,
-      },
+      message: "Permohonan affiliate berhasil diajukan.",
+      data: formatedAffilaite,
     });
   } catch (error) {
     res.status(500).json({
@@ -99,9 +136,12 @@ export const applyForAffiliate = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const approveAffiliate = async (req: AuthRequest, res: Response) => {
-  //   const { userId } = req.params;
-  const { userId, status } = req.body;
+export const updateForAffiliate = async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id;
+  const { bankType, nameOnAccount, accountNumber } = req.body;
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+
+  console.log("Received file:", files);
 
   try {
     const user = await User.findByPk(userId);
@@ -114,52 +154,59 @@ export const approveAffiliate = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // Ubah role user menjadi affiliate
-    const existingRequest = await AffiliateRequest.findOne({
-      where: {
-        userId: user.id,
-      },
+    if (user.address === null || user.phone === null) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Lengkapi data diri anda (alamat dan nomor telepon) sebelum mengajukan permohonan affiliate.",
+        data: null,
+      });
+    }
+
+    const affiliateUser = await Affiliate.findOne({
+      where: { userId: user.id },
     });
 
-    if (!existingRequest) {
-      return res.status(400).json({
-        success: false,
-        message: "Tidak ada permohonan affiliate yang tertunda untuk user ini.",
-        data: null,
-      });
+    let imageUrl = "";
+    let imageKey = "";
+
+    if (
+      files["bankBookImage"] !== undefined &&
+      files["bankBookImage"].length > 0
+    ) {
+      await storageService.deleteFile(affiliateUser!.bankBookImageKey);
+      const uploadResult = await storageService.uploadFile(
+        files["bankBookImage"][0],
+        "bank-books"
+      );
+
+      imageUrl = uploadResult.url;
+      imageKey = uploadResult.key;
     }
 
-    if (status !== "approved" && status !== "rejected") {
-      return res.status(400).json({
-        success: false,
-        message: "Status tidak valid. Harus 'approved' atau 'rejected'.",
-        data: null,
-      });
-    }
+    await affiliateUser?.update({
+      bankType: bankType ? affiliateUser.bankType : bankType,
+      nameOnAccount: nameOnAccount
+        ? affiliateUser.nameOnAccount
+        : nameOnAccount,
+      accountNumber: accountNumber
+        ? affiliateUser.accountNumber
+        : accountNumber,
+      bankBookImageUrl: imageUrl ? imageUrl : affiliateUser.bankBookImageUrl,
+      bankBookImageKey: imageUrl ? imageKey : affiliateUser.bankBookImageKey,
+    });
 
-    if (status === "approved") {
-      user.role = UserRole.AFFILIATE;
-      await user.save();
-
-      const referalCode = `AFFILIATE-${user.id}-${Date.now()}`;
-
-      const newAffiliate = await Affiliate.create({
-        userId: user.id,
-        referralCode: referalCode,
-        // commissionRate: 0.1,
-        totalCommission: 0,
-      });
-
-      existingRequest.status = status;
-      await existingRequest.save();
-
-      console.log("New Affiliate Created:", newAffiliate);
-    }
+    const formatedAffilaite: AffilateResponse = {
+      bankType: affiliateUser!.bankType,
+      nameOnAccount: affiliateUser!.nameOnAccount,
+      accountNumber: affiliateUser!.accountNumber,
+      bankBookImageUrl: affiliateUser!.bankBookImageUrl,
+    };
 
     res.status(200).json({
       success: true,
-      message: "Request affiliate telah diperbarui.",
-      data: user,
+      message: "Data affiliate berhasil diperbarui.",
+      data: formatedAffilaite,
     });
   } catch (error) {
     res.status(500).json({
