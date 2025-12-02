@@ -24,6 +24,7 @@ interface formatedProduct {
   description: string;
   price: number;
   stock: number;
+  sold: number;
   weight: number;
   length: number;
   width: number;
@@ -142,27 +143,12 @@ export const getProducts = async (_req: Request, res: Response) => {
       description: product.description,
       price: product.price,
       stock: product.stock,
+      sold: product.sold,
       weight: product.weight,
       length: product.length,
       width: product.width,
       height: product.height,
     }));
-
-    // const productsFormatted: formatedProduct[] = products.map((product) => ({
-    //   id: product.id,
-    //   name: product.name,
-    //   sku: product.sku,
-    //   images: product.images,
-    //   categoryId: product.categoryId,
-    //   category:
-    //   description: product.description,
-    //   price: product.price,
-    //   stock: product.stock,
-    //   weight: product.weight,
-    //   length: product.length,
-    //   width: product.width,
-    //   height: product.height,
-    // }));
 
     res.status(200).json({
       success: true,
@@ -211,6 +197,7 @@ export const getProductById = async (req: Request, res: Response) => {
       description: product.description,
       price: product.price,
       stock: product.stock,
+      sold: product.sold,
       weight: product.weight,
       length: product.length,
       width: product.width,
@@ -285,6 +272,7 @@ export const getProductsByCategory = async (req: Request, res: Response) => {
       description: product.description,
       price: product.price,
       stock: product.stock,
+      sold: product.sold,
       weight: product.weight,
       length: product.length,
       width: product.width,
