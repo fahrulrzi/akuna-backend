@@ -10,6 +10,7 @@ interface AuthRequest extends Request {
 }
 
 interface formatedProduct {
+  id: number;
   name: string;
   sku: string;
   images: string[];
@@ -109,6 +110,7 @@ export const getProducts = async (_req: Request, res: Response) => {
     });
 
     const productsFormatted: formatedProduct[] = products.map((product) => ({
+      id: product.id,
       name: product.name,
       sku: product.sku,
       images: product.images,
@@ -153,6 +155,7 @@ export const getProductById = async (req: Request, res: Response) => {
     }
 
     const productFormatted: formatedProduct = {
+      id: product.id,
       name: product.name,
       sku: product.sku,
       images: product.images,
@@ -216,6 +219,7 @@ export const getProductsByCategory = async (req: Request, res: Response) => {
     }
 
     const productsFormatted: formatedProduct[] = products.map((product) => ({
+      id: product.id,
       name: product.name,
       sku: product.sku,
       images: product.images,

@@ -7,7 +7,6 @@ import { TransactionItem } from "../models/TransactionItem.js";
 import { coreApi, snap } from "../config/midtrans.js";
 import { Affiliate } from "../models/Affiliate.js";
 import { Setting } from "../models/Setting.js";
-import { totalmem } from "os";
 
 // Generate unique order ID
 const generateOrderId = (): string => {
@@ -19,7 +18,7 @@ const generateOrderId = (): string => {
 // Create transaction and get Snap token
 export const createTransaction = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user.id; // Dari auth middleware
+    const userId = (req as any).user.id; 
     const { products } = req.body; // Array of { productId, quantity }
 
     if (!products || !Array.isArray(products) || products.length === 0) {
