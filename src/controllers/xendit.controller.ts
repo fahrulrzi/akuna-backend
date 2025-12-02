@@ -23,21 +23,48 @@ interface AuthRequest extends Request {
   user?: { id: number; role: string };
 }
 
+interface shippingDetail {
+  origin_contact_name: string;
+  origin_contact_phone: string;
+  origin_contact_email: string;
+  origin_address: string;
+  origin_note?: string;
+  origin_postal_code: number;
+  destination_contact_name: string;
+  destination_contact_phone: string;
+  destination_contact_email: string;
+  destination_address: string;
+  destination_postal_code: number;
+  destination_note?: string;
+  courier_company: string;
+  courier_type: string;
+  delivery_type: string;
+  items: ShippingItems[];
+}
+
 // Create Invoice (Payment)
 export const createXenditInvoice = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
-    const { products, payment_methods, postal_code, courier_code } = req.body;
+    const {
+      products,
+      payment_methods,
+      postal_code,
+      courier_code,
+      courier_company,
+      type,
+    } = req.body;
 
     if (
       !products ||
       !Array.isArray(products) ||
       products.length === 0 ||
-      courier_code === undefined
+      courier_code === undefined ||
+      type === undefined
     ) {
       return res.status(400).json({
         success: false,
-        message: "Products and courier are required.",
+        message: "Product, courier, courierType, and type",
       });
     }
 
@@ -115,6 +142,14 @@ export const createXenditInvoice = async (req: AuthRequest, res: Response) => {
       });
     }
 
+    if (user.address === null || (user as any).phone === null) {
+      return res.status(400).json({
+        sucess: false,
+        message:
+          "Please complete your address and phone number on profile before creating an invoice.",
+      });
+    }
+
     const originPostalCode = await Setting.findOne({
       where: { key: "postal_code" },
     });
@@ -130,15 +165,48 @@ export const createXenditInvoice = async (req: AuthRequest, res: Response) => {
       payloadShipping
     );
     let shipping_cost = 0;
-    let shipping_details = {}; //? bingung isi apa, kek perlu ga perlu, di fe jg ga ada detail lain sbgnya
+    let shippingDetails: shippingDetail = {
+      origin_contact_name: "",
+      origin_contact_phone: "",
+      origin_contact_email: "",
+      origin_address: "",
+      origin_postal_code: 0,
+      destination_contact_name: "",
+      destination_contact_phone: "",
+      destination_contact_email: "",
+      destination_address: "",
+      destination_postal_code: 0,
+      courier_company: "",
+      courier_type: "",
+      delivery_type: "",
+      items: [],
+    }; //? bingung isi apa, kek perlu ga perlu, di fe jg ga ada detail lain sbgnya
 
     for (const resItem of shippingRes.pricing) {
       if (
         resItem.courier_code === courier_code &&
-        resItem.shipping_type === "parcel"
+        resItem.shipping_type === "parcel" &&
+        resItem.type === type &&
+        resItem.available_collection_method.includes("pickup")
       ) {
         shipping_cost = resItem.price;
-        // shipping_details = resItem;
+        shippingDetails = {
+          origin_contact_name: "Akuna Store",
+          origin_contact_phone: "081222225862",
+          origin_contact_email: "akuna@gmail.com", //! jangan lupa diganti pake settings
+          origin_address: "Jl. Example No.123, Yogyakarta",
+          origin_postal_code: parseInt(originPostalCode?.value || "55281"),
+          destination_contact_name: user.name,
+          destination_contact_phone: (user as any).phone || "081234567890",
+          destination_contact_email: user.email,
+          destination_address: (user as any).address || "Jl. User Address",
+          destination_postal_code: parseInt(postal_code || "55281"),
+          courier_company: courier_company || "",
+          courier_type: type,
+          delivery_type: "now",
+          items: shippingItems ? [shippingItems] : [],
+        };
+        break;
       }
     }
 
@@ -152,17 +220,6 @@ export const createXenditInvoice = async (req: AuthRequest, res: Response) => {
 
     // Generate external ID
     const externalId = generateExternalId();
-
-    // Create transaction in database
-    const transaction = await Transaction.create({
-      orderId: externalId,
-      userId,
-      products: transactionProducts,
-      totalAmount,
-      status: "pending",
-      shippingCost: Number(shipping_cost) || 0,
-      shippingDetails: shipping_details,
-    });
 
     // Prepare invoice data
     const invoiceData: any = {
@@ -185,11 +242,23 @@ export const createXenditInvoice = async (req: AuthRequest, res: Response) => {
     // Create invoice via Xendit
     const invoice = await xenditInvoice.createInvoice({ data: invoiceData });
 
-    // Update transaction with invoice data
-    await transaction.update({
+    const transaction = await Transaction.create({
+      orderId: externalId,
+      userId,
+      products: transactionProducts,
+      totalAmount,
+      status: "pending",
+      shippingCost: Number(shipping_cost) || 0,
+      shippingDetails: shippingDetails,
       transactionId: invoice.id,
       snapRedirectUrl: invoice.invoiceUrl,
     });
+
+    // Update transaction with invoice data
+    // await transaction.update({
+    //   transactionId: invoice.id,
+    //   snapRedirectUrl: invoice.invoiceUrl,
+    // });
 
     return res.status(201).json({
       success: true,
@@ -282,7 +351,6 @@ export const handleXenditCallback = async (req: Request, res: Response) => {
         quantity: number;
       }>;
 
-
       for (const item of products) {
         const product = await Product.findByPk(item.productId);
         if (product) {
@@ -296,10 +364,11 @@ export const handleXenditCallback = async (req: Request, res: Response) => {
         console.log("📦 Payment succeed. Packing Order...");
 
         await transaction.update({
-            status: 'packing' 
+          status: "packing",
         });
-        console.log(`✅ Order ${externalId} status updated to 'packing'. Waiting for Admin processing.`);
-
+        console.log(
+          `✅ Order ${externalId} status updated to 'packing'. Waiting for Admin processing.`
+        );
       } catch (error) {
         console.error("❌ Failed to update status to packing:", error);
       }

@@ -17,6 +17,7 @@ interface ShippingRatesResponse {
   shipment_duration_range?: string;
   shipment_duration_unit?: string;
   price: number;
+  courier_company: string;
   type?: string;
 }
 
@@ -120,7 +121,10 @@ export const getRates = async (req: Request, res: Response) => {
     const data: BiteshipRatesResponse = await biteshipClient.getRates(payload);
 
     for (const resData of data.pricing) {
-      if (resData.shipping_type === "parcel") {
+      if (
+        resData.shipping_type === "parcel" &&
+        resData.available_collection_method.includes("pickup")
+      ) {
         results.push({
           courier_name: resData.courier_name,
           courier_code: resData.courier_code,
@@ -128,6 +132,7 @@ export const getRates = async (req: Request, res: Response) => {
           shipment_duration_range: resData.shipment_duration_range,
           shipment_duration_unit: resData.shipment_duration_unit,
           price: resData.price,
+          courier_company: resData.company,
           type: resData.type,
         });
       }
