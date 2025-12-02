@@ -33,10 +33,13 @@ export const createBlog = async (req: Request, res: Response) => {
       thumbnailKey,
     });
 
+    const blogJson = blog.toJSON();
+    const { thumbnailKey: _, ...cleanBlog } = blogJson;
+
     return res.status(201).json({
       success: true,
       message: "Blog berhasil dibuat.",
-      data: blog,
+      data: cleanBlog,
     });
   } catch (error) {
     return res.status(500).json({
@@ -50,10 +53,17 @@ export const createBlog = async (req: Request, res: Response) => {
 export const getBlogs = async (_req: Request, res: Response) => {
   try {
     const blogs = await Blog.findAll({ order: [["created_at", "DESC"]] });
+
+    const cleanBlogs = blogs.map((blog) => {
+      const blogJson = blog.toJSON();
+      const { thumbnailKey, ...rest } = blogJson;
+      return rest;
+    });
+
     return res.status(200).json({
       success: true,
       message: "Data blog berhasil diambil.",
-      data: blogs,
+      data: cleanBlogs,
     });
   } catch (error) {
     return res.status(500).json({
@@ -77,10 +87,13 @@ export const getBlogById = async (req: Request, res: Response) => {
       });
     }
 
+    const blogJson = blog.toJSON();
+    const { thumbnailKey, ...cleanBlog } = blogJson;
+
     return res.status(200).json({
       success: true,
       message: "Data blog berhasil diambil.",
-      data: blog,
+      data: cleanBlog,
     });
   } catch (error) {
     return res.status(500).json({
@@ -139,10 +152,13 @@ export const updateBlog = async (req: Request, res: Response) => {
       thumbnailKey: nextThumbnailKey,
     });
 
+    const blogJson = blog.toJSON();
+    const { thumbnailKey: _, ...cleanBlog } = blogJson;
+
     return res.status(200).json({
       success: true,
       message: "Blog berhasil diperbarui.",
-      data: blog,
+      data: cleanBlog,
     });
   } catch (error) {
     return res.status(500).json({

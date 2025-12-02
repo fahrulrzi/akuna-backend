@@ -15,8 +15,8 @@ const router = Router();
 router.post(
   "/",
   isAuthenticated,
-  upload.single("thumbnail"),
   isAdmin,
+  upload.single("thumbnail"),
   createBlog
 );
 
@@ -26,8 +26,8 @@ router.get("/:id", getBlogById);
 router.put(
   "/:id",
   isAuthenticated,
-  upload.single("thumbnail"),
   isAdmin,
+  upload.single("thumbnail"),
   updateBlog
 );
 
