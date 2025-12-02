@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { User, UserRole } from "../models/User";
 import { Transaction } from "../models/Transaction";
+import { biteshipClient } from "../utils/biteship.js";
+import { config } from "../config/index.js";
 
 interface AuthRequest extends Request {
   user?: { id: number; role: string };
@@ -242,17 +244,28 @@ export const updateOrder = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    const allowedStatuses = ["pending", "success", "failed", "expired", "cancelled"];
+    const allowedStatuses = [
+      "pending", 
+      "success",
+      "failed", 
+      "expired", 
+      "cancelled",
+      "packing",
+      "packed",
+      "ready_to_ship",
+      "shipped",
+      "delivered"
+    ];
+
     if (!status || !allowedStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
-        message: `Status tidak valid. Status: ${allowedStatuses.join(", ")}`,
+        message: `Status tidak valid.`,
       });
     }
 
-    const whereClause = { orderId: id };
-
-    const transaction = await Transaction.findOne({ where: whereClause });
+    const transaction = await Transaction.findOne({ where: { orderId: id } });
+    
     if (!transaction) {
       return res.status(404).json({
         success: false,
@@ -260,14 +273,81 @@ export const updateOrder = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    await transaction.update({ status });
+    if (status === "ready_to_ship") {
+        if (transaction.trackingId) {
+             return res.status(400).json({ 
+                 success: false, 
+                 message: "Kurir/Resi sudah dibuat untuk order ini." 
+             });
+        }
+        console.log(`🚚 Admin merequest pengiriman untuk ${id}...`);
+
+        try {
+            const shipDetails = (transaction as any).shippingDetails;
+            const productsData = (transaction.products as any[]) || [];
+            if (!shipDetails) {
+                return res.status(400).json({ success: false, message: "Data shipping details tidak ditemukan." });
+            }
+
+            const biteshipPayload = {
+                shipper_contact_name: "Akuna Store",
+                shipper_contact_phone: "081222225862",
+                origin_postal_code: parseInt(config.biteship.originPostalCode),
+                
+                destination_contact_name: shipDetails.recipient.name,
+                destination_contact_phone: shipDetails.recipient.phone,
+                destination_address: shipDetails.recipient.address,
+                destination_postal_code: parseInt(shipDetails.recipient.postal_code),
+                destination_note: shipDetails.recipient.note,
+
+                courier_company: shipDetails.shipping.courier_company,
+                courier_type: shipDetails.shipping.courier_type,
+                delivery_type: "now",
+                
+                items: productsData.map((p: any) => ({
+                    name: p.productName,
+                    value: p.price,
+                    quantity: p.quantity,
+                    weight: p.weight || 1000
+                }))
+            };
+
+            const shipRes = await biteshipClient.createOrder(biteshipPayload);
+            console.log(`✅ Biteship Resi Created: ${shipRes.courier.waybill_id}`);
+            
+            await transaction.update({
+                status: 'ready_to_ship',
+                trackingId: shipRes.id,
+                courierResi: shipRes.courier.waybill_id
+            });
+
+        } catch (error: any) {
+            console.error("Gagal panggil Biteship:", error);
+            const errorMessage = error?.data?.error || "Gagal menghubungi server logistik.";
+            return res.status(500).json({ 
+                success: false, 
+                message: errorMessage 
+            });
+        }
+    } 
+    
+    else {
+        await transaction.update({ status });
+    }
 
     return res.status(200).json({
       success: true,
-      message: "Status order berhasil diperbarui",
-      data: { orderId: transaction.orderId, status },
+      message: `Status order selesai di${status}`,
+      data: { 
+          orderId: transaction.orderId, 
+          status: transaction.status,
+          trackingId: transaction.trackingId,
+          resi: transaction.courierResi
+      },
     });
+
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server.",

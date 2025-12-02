@@ -293,46 +293,15 @@ export const handleXenditCallback = async (req: Request, res: Response) => {
         }
       }
       try {
-        console.log("🚚 Preparing shipment with Biteship...");
-        const shipDetails = (transaction as any).shippingDetails;
+        console.log("📦 Payment succeed. Packing Order...");
 
-        const biteshipItems = (transaction.products as any[]).map((p: any) => ({
-          name: p.productName,
-          value: p.price,
-          quantity: p.quantity,
-          weight: p.weight,
-        }));
+        await transaction.update({
+            status: 'packing' 
+        });
+        console.log(`✅ Order ${externalId} status updated to 'packing'. Waiting for Admin processing.`);
 
-        if (shipDetails) {
-          const biteshipPayload = {
-            shipper_contact_name: "Akuna Store",
-            shipper_contact_phone: "081222225862",
-            origin_postal_code: parseInt(config.biteship.originPostalCode),
-
-            destination_contact_name: shipDetails.recipient.name,
-            destination_contact_phone: shipDetails.recipient.phone,
-            destination_address: shipDetails.recipient.address,
-            destination_postal_code: parseInt(
-              shipDetails.recipient.postal_code
-            ),
-            destination_note: shipDetails.recipient.note,
-
-            courier_company: shipDetails.shipping.courier_company,
-            courier_type: shipDetails.shipping.courier_type,
-            delivery_type: "now",
-            items: biteshipItems,
-          };
-
-          const shipRes = await biteshipClient.createOrder(biteshipPayload);
-          console.log(`✅ Biteship Order Created: ${shipRes.id}`);
-
-          await transaction.update({
-            trackingId: shipRes.id,
-            courierResi: shipRes.courier.waybill_id,
-          });
-        }
-      } catch (shipError) {
-        console.error("❌ Biteship callback error:", shipError);
+      } catch (error) {
+        console.error("❌ Failed to update status to packing:", error);
       }
     }
 

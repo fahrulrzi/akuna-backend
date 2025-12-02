@@ -108,6 +108,13 @@ export class Transaction extends Model {
   })
   declare courierResi: string;
 
+  @Column({
+    type: DataType.STRING,
+    allowNull: false,
+    defaultValue: "idle",
+  })
+  declare deliveryStatus: string;
+
   @BelongsTo(() => User, "userId")
   user!: User;
 

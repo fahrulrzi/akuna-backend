@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { 
   getRates, 
-  addOrder, 
+  // addOrder, 
+  handleBiteshipWebhook,
   getTracking,
   searchAreas
 } from "../controllers/delivery.controller.js";
@@ -12,7 +13,8 @@ const router = Router();
 router.get("/areas", searchAreas); 
 
 router.post("/rates", getRates);
-router.post("/orders", isAuthenticated, addOrder);
+// router.post("/orders", isAuthenticated, addOrder);
+router.post("/callback", handleBiteshipWebhook);
 router.get("/trackings/:id", getTracking);
 
 export default router;
