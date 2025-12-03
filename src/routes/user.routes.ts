@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { upload } from "../config/multer";
 import {
   getProfile,
   updateProfile,
@@ -16,7 +17,11 @@ const router = Router();
 
 // Rute ini dilindungi, hanya user yang sudah login bisa mengakses
 // Affiliate routes
-router.post("/affiliate", isAuthenticated, requestAffiliate);
+router.post(
+  "/affiliate", 
+  isAuthenticated, 
+  upload.fields([{ name: "bankBookImage", maxCount: 1 }]),
+  requestAffiliate);
 router.put("/affiliate", isAuthenticated, isAffiliate, updateForAffiliate);
 
 // User profile routes
