@@ -16,7 +16,7 @@ router.get("/areas", isAuthenticated, searchAreas);
 
 router.post("/rates", isAuthenticated, getRates);
 // router.post("/orders", isAuthenticated, addOrder);
-router.post("/callback", handleBiteshipWebhook);
+// router.post("/callback", handleBiteshipWebhook);
 router.get("/trackings/:id", isAuthenticated, getTracking);
 router.post("/create-shipping", isAuthenticated, isAdmin, createDeliveryOrder);
 

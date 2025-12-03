@@ -28,6 +28,7 @@ import { adminSeeder } from "./seeders/admin.seeder.js";
 import { categorySeeder } from "./seeders/categories.seeder.js";
 import { productSeeder } from "./seeders/products.seeder.js";
 import { ownerSeeder } from "./seeders/owner.seeder.js";
+import { handleBiteshipWebhook } from "./controllers/delivery.controller.js";
 
 const startServer = async () => {
   try {
@@ -35,6 +36,8 @@ const startServer = async () => {
     const PORT = config.port;
 
     app.use(cors({ origin: "*" }));
+
+    app.post("/api/delivery/callback", handleBiteshipWebhook);
 
     // Middlewares
     app.use(express.json()); // Untuk parsing body JSON
