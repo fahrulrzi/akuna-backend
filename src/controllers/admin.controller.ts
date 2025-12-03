@@ -245,26 +245,20 @@ export const updateOrder = async (req: AuthRequest, res: Response) => {
     const { status } = req.body;
 
     const allowedStatuses = [
-      "pending", 
-      "success",
-      "failed", 
-      "expired", 
-      "cancelled",
-      "packing",
-      "packed",
-      "ready_to_ship",
-      "shipped",
-      "delivered"
+      "pending", "success", "failed", "expired", "cancelled",
+      "packing", "packed", "ready_to_ship", "shipped", "delivered"
     ];
 
     if (!status || !allowedStatuses.includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: `Status tidak valid.`,
-      });
+      return res.status(400).json({ success: false, message: `Status tidak valid.` });
     }
 
     const transaction = await Transaction.findOne({ where: { orderId: id } });
+    if (!transaction) {
+      return res.status(404).json({ success: false, message: "Order tidak ditemukan" });
+    }
+    
+    const deliveryStatuses = ["packing", "packed", "ready_to_ship", "shipped", "delivered"];
     
     if (!transaction) {
       return res.status(404).json({
@@ -316,7 +310,7 @@ export const updateOrder = async (req: AuthRequest, res: Response) => {
             console.log(`✅ Biteship Resi Created: ${shipRes.courier.waybill_id}`);
             
             await transaction.update({
-                status: 'ready_to_ship',
+                deliveryStatus: 'ready_to_ship',
                 trackingId: shipRes.id,
                 courierResi: shipRes.courier.waybill_id
             });
@@ -331,6 +325,12 @@ export const updateOrder = async (req: AuthRequest, res: Response) => {
         }
     } 
     
+    else if (deliveryStatuses.includes(status)) {
+        await transaction.update({ 
+            deliveryStatus: status 
+        });
+    }
+    
     else {
         await transaction.update({ status });
     }
@@ -341,6 +341,7 @@ export const updateOrder = async (req: AuthRequest, res: Response) => {
       data: { 
           orderId: transaction.orderId, 
           status: transaction.status,
+          deliveryStatus: transaction.deliveryStatus,
           trackingId: transaction.trackingId,
           resi: transaction.courierResi
       },
