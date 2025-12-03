@@ -269,31 +269,32 @@ export const getRates = async (req: Request, res: Response) => {
 // };
 
 export const handleBiteshipWebhook = async (req: Request, res: Response) => {
+  console.log("Received Biteship Webhook:", JSON.stringify(req.body, null, 2));
   try {
-    const { order_id, status } = req.body; 
+    const { order_id, status } = req.body;
     console.log(`🔔 Webhook Biteship: ${order_id} is now ${status}`);
 
     const transaction = await Transaction.findOne({
-      where: { trackingId: order_id }
+      where: { trackingId: order_id },
     });
 
     if (!transaction) {
-      return res.status(200).json({ success: true }); 
+      return res.status(200).json({ success: true });
     }
 
     await transaction.update({
-        deliveryStatus: status
+      deliveryStatus: status,
     });
 
-    if (status === 'delivered') {
-        if (transaction.status !== 'success') {
-            await transaction.update({ status: 'success' });
-            console.log(`🎉 Order ${transaction.orderId} COMPLETED (Delivered).`);
-        }
-    } else if (status === 'picked_up' || status === 'on_delivery') {}
+    if (status === "delivered") {
+      if (transaction.status !== "success") {
+        await transaction.update({ status: "success" });
+        console.log(`🎉 Order ${transaction.orderId} COMPLETED (Delivered).`);
+      }
+    } else if (status === "picked_up" || status === "on_delivery") {
+    }
 
     return res.status(200).json({ success: true });
-
   } catch (error) {
     console.error("Webhook Error:", error);
     return res.status(500).json({ success: false });
