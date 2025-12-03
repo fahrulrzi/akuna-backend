@@ -3,6 +3,8 @@ import { User, UserRole } from "../models/User";
 import { Transaction } from "../models/Transaction";
 import { biteshipClient } from "../utils/biteship.js";
 import { config } from "../config/index.js";
+import { Affiliate } from "../models/Affiliate.js";
+import { AffiliateCommission } from "../models/AffiliateCommission.js";
 
 interface AuthRequest extends Request {
   user?: { id: number; role: string };
@@ -23,6 +25,55 @@ export const getAllBuyer = async (_req: AuthRequest, res: Response) => {
       data: users,
     });
   } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Terjadi kesalahan pada server.",
+      data: error,
+    });
+  }
+};
+
+export const getAllAffiliate = async (_req: AuthRequest, res: Response) => {
+  try {
+    const affiliates = await Affiliate.findAll({
+      include: [
+        {
+          model: User,
+          as: "user",
+          attributes: ["id", "name", "email"],
+        },
+        {
+          model: AffiliateCommission,
+          as: "commissions", 
+          attributes: ["id"],
+        },
+      ],
+      order: [["createdAt", "DESC"]],
+    });
+
+    const data = affiliates.map((aff) => {
+      const a: any = aff;
+      const userData = a.user || {};
+      const commissionsList = a.commissions || [];
+
+      return {
+        id: userData.id,
+        affiliateId: a.id, 
+        affiliatorName: userData.name || "Unknown User",
+        email: userData.email || "-",
+        referralCode: a.referralCode,
+        totalOrders: commissionsList.length,  
+        totalCommission: Number(a.totalCommission),              
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Daftar affiliate berhasil diambil.",
+      data: data,
+    });
+  } catch (error) {
+    console.error("Get All Affiliate Error:", error);
     res.status(500).json({
       success: false,
       message: "Terjadi kesalahan pada server.",

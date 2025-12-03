@@ -6,6 +6,7 @@ import {
   addAdmin,
   getAllAdmin,
   getAllBuyer,
+  getAllAffiliate,
   getAllOrder,
   getOrder,
   updateOrder,
@@ -16,7 +17,7 @@ const router = Router();
 router.get("/customers", isAuthenticated, isAdmin, getAllBuyer);
 router.get("/admins", isAuthenticated, isOwner, getAllAdmin);
 router.post("/admins", isAuthenticated, isOwner, addAdmin);
-
+router.get("/affiliates", isAuthenticated, isAdmin, getAllAffiliate);
 router.get("/orders", isAuthenticated, isAdmin, getAllOrder);
 router.get("/orders/:id", isAuthenticated, isAdmin, getOrder);
 router.put("/orders/:id", isAuthenticated, isAdmin, updateOrder);
