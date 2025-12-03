@@ -118,7 +118,6 @@ export const getUserOrderDetail = async (req: AuthRequest, res: Response) => {
         date: t.createdAt,
         title: "Idle",
         description: "Pesanan berhasil dibuat. Menunggu pembayaran.",
-        active: true
     });
 
     if (t.status === 'success') {
@@ -126,7 +125,6 @@ export const getUserOrderDetail = async (req: AuthRequest, res: Response) => {
             date: t.updatedAt, 
             title: "Order Placed",
             description: "Pembayaran telah diterima.",
-            active: true
         });
     }
 
@@ -136,7 +134,6 @@ export const getUserOrderDetail = async (req: AuthRequest, res: Response) => {
             date: t.updatedAt, 
             title: "Packing Order",
             description: "Pesanan sedang dikemas.",
-            active: true
         });
     }
 
@@ -146,7 +143,6 @@ export const getUserOrderDetail = async (req: AuthRequest, res: Response) => {
             date: t.updatedAt, 
             title: "Order Packed",
             description: "Pesanan selesai dikemas.",
-            active: true
         });
     }
 
@@ -157,7 +153,6 @@ export const getUserOrderDetail = async (req: AuthRequest, res: Response) => {
                 date: hist.updated_at,
                 title: mapBiteshipStatus(hist.status), 
                 description: hist.note,
-                active: true
             }));
             
             timeline = [...biteshipHistory.reverse(), ...timeline]; 
@@ -169,7 +164,6 @@ export const getUserOrderDetail = async (req: AuthRequest, res: Response) => {
                     date: new Date(),
                     title: "Shipping Info",
                     description: `Resi: ${t.courierResi}. Cek manual untuk update.`,
-                    active: true
                 });
              }
         }
@@ -194,7 +188,7 @@ export const getUserOrderDetail = async (req: AuthRequest, res: Response) => {
       shippingCost: Number(t.shippingCost),
       
       snapRedirectUrl: t.snapRedirectUrl,
-      timeline: timeline
+      timeline: timeline,
     };
 
     return res.status(200).json({

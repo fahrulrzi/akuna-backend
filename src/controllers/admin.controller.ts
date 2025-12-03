@@ -250,7 +250,9 @@ export const updateOrder = async (req: AuthRequest, res: Response) => {
     ];
 
     if (!status || !allowedStatuses.includes(status)) {
-      return res.status(400).json({ success: false, message: `Status tidak valid.` });
+      return res.status(400).json({ 
+        success: false, 
+        message: `Status tidak valid.` });
     }
 
     const transaction = await Transaction.findOne({ where: { orderId: id } });
@@ -280,7 +282,9 @@ export const updateOrder = async (req: AuthRequest, res: Response) => {
             const shipDetails = (transaction as any).shippingDetails;
             const productsData = (transaction.products as any[]) || [];
             if (!shipDetails) {
-                return res.status(400).json({ success: false, message: "Data shipping details tidak ditemukan." });
+                return res.status(400).json({ 
+                  success: false, 
+                  message: "Data shipping details tidak ditemukan." });
             }
 
             const biteshipPayload = {
@@ -340,10 +344,10 @@ export const updateOrder = async (req: AuthRequest, res: Response) => {
       message: `Status order selesai di${status}`,
       data: { 
           orderId: transaction.orderId, 
-          status: transaction.status,
+          paymentStatus: transaction.status,
           deliveryStatus: transaction.deliveryStatus,
           trackingId: transaction.trackingId,
-          resi: transaction.courierResi
+          resi: transaction.courierResi,
       },
     });
 
