@@ -6,6 +6,8 @@ import { Transaction } from "../models/Transaction.js";
 import { biteshipClient } from "../utils/biteship.js";
 import { config } from "../config/index.js";
 import { Setting } from "../models/Setting.js";
+import { Affiliate } from "../models/Affiliate.js";
+import { AffiliateCommission } from "../models/AffiliateCommission.js";
 import {
   BiteshipRatesResponse,
   shippingDetail,
@@ -35,6 +37,7 @@ export const createXenditInvoice = async (req: AuthRequest, res: Response) => {
       courier_code,
       courier_company,
       type,
+      referralCode,
     } = req.body;
 
     if (
@@ -52,6 +55,7 @@ export const createXenditInvoice = async (req: AuthRequest, res: Response) => {
 
     // Calculate total
     let totalAmount = 0;
+    let productTotalAmount = 0;
     const transactionProducts = [];
     const items = [];
     const shippingItems: ShippingItems = {
@@ -82,6 +86,7 @@ export const createXenditInvoice = async (req: AuthRequest, res: Response) => {
 
       const itemTotal = Number(product.price) * item.quantity;
       totalAmount += itemTotal;
+      productTotalAmount += itemTotal;
 
       transactionProducts.push({
         productId: product.id,
@@ -245,6 +250,30 @@ export const createXenditInvoice = async (req: AuthRequest, res: Response) => {
       snapRedirectUrl: invoice.invoiceUrl,
     });
 
+    if (referralCode) {
+      const affiliate = await Affiliate.findOne({ where: { referralCode } });
+
+      if (affiliate && affiliate.userId !== userId) {        
+        const COMMISSION_RATE = 0.1; 
+        const commissionValue = productTotalAmount * COMMISSION_RATE;
+        const summaryProductName = transactionProducts.length === 1 
+            ? transactionProducts[0].productName 
+            : `Order ${externalId} (${transactionProducts.length} Items)`;
+
+        await AffiliateCommission.create({
+          affiliateId: affiliate.id,
+          orderId: externalId,
+          productName: summaryProductName, 
+          purchaseValue: productTotalAmount,
+          commissionAmount: commissionValue,
+          status: 'Pending'
+        });
+
+        console.log(`✅ Affiliate commission recorded for ${referralCode} - Status: Pending`);
+      } else {
+        console.log("Invalid referral code or self-referral detected.");
+      }
+    }
     // Update transaction with invoice data
     // await transaction.update({
     //   transactionId: invoice.id,
@@ -334,6 +363,21 @@ export const handleXenditCallback = async (req: Request, res: Response) => {
       paymentType: data.payment_method || data.payment_channel,
     });
 
+    if (newStatus === "success") {
+      const commission = await AffiliateCommission.findOne({
+        where: { orderId: externalId, status: 'Pending' }
+      });
+
+      if (commission) {
+         await commission.update({ status: 'Paid' });
+
+         const affiliate = await Affiliate.findByPk(commission.affiliateId);
+         if (affiliate) {
+            await affiliate.increment('totalCommission', { by: commission.commissionAmount });
+            console.log(`💰 Commission released: ${commission.commissionAmount} to Affiliate ID ${affiliate.id}`);
+         }
+      }
+    }
     // console.log(`✅ Transaction ${externalId} updated to ${newStatus}`);
 
     // Update stock if payment success

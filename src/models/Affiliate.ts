@@ -5,9 +5,11 @@ import {
   ForeignKey,
   Model,
   Table,
+  HasMany,
 } from "sequelize-typescript";
 import { User } from "./User.js";
-
+import { AffiliateCommission } from "./AffiliateCommission.js";
+import { WithdrawRequest } from "./WithdrawRequest.js";
 export enum BankType {
   BCA = "BCA",
   MANDIRI = "Mandiri",
@@ -89,4 +91,10 @@ export class Affiliate extends Model {
 
   @BelongsTo(() => User, "userId")
   user!: User;
+  
+  @HasMany(() => AffiliateCommission)
+  declare commissions: AffiliateCommission[];
+
+  @HasMany(() => WithdrawRequest)
+  declare withdrawRequests: WithdrawRequest[];
 }

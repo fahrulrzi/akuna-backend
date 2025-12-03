@@ -3,6 +3,9 @@ import { User, UserRole } from "../models/User.js";
 import { config } from "../config/index.js";
 import { Affiliate } from "../models/Affiliate.js";
 import { storageService } from "../services/storage.service.js";
+import { AffiliateCommission } from "../models/AffiliateCommission.js";
+import { WithdrawRequest } from "../models/WithdrawRequest.js";
+import sequelize  from "../config/database.js";
 
 interface AuthRequest extends Request {
   user?: { id: number; role: string };
@@ -46,6 +49,169 @@ export const getAffiliates = async (_req: AuthRequest, res: Response) => {
       message: "Terjadi kesalahan pada server.",
       data: config.nodeEnv === "development" ? error : undefined,
     });
+  }
+};
+
+export const verifyAffiliateUser = async (req: Request, res: Response) => {
+  const { id } = req.params; 
+  const { action } = req.body;
+
+  const t = await sequelize.transaction();
+
+  try {
+    const affiliate = await Affiliate.findByPk(id);
+    if (!affiliate) {
+      await t.rollback();
+      return res.status(404).json({ message: "Affiliate not found" });
+    }
+
+    if (action === 'reject') {
+      if (affiliate.bankBookImageKey) {
+        await storageService.deleteFile(affiliate.bankBookImageKey);
+      }
+
+      await User.update(
+        { role: UserRole.BUYER }, 
+        { where: { id: affiliate.userId }, transaction: t }
+      );
+
+      await affiliate.destroy({ transaction: t });      
+      await t.commit();
+      return res.status(200).json({ success: true, message: "Affiliate ditolak dan role user dikembalikan." });
+    } 
+    
+    else if (action === 'approve') {      
+      await t.commit();
+      return res.status(200).json({ success: true, message: "Affiliate verified/approved." });
+    }
+
+    await t.rollback();
+    return res.status(400).json({ message: "Invalid action. Use 'approve' or 'reject'." });
+
+  } catch (error) {
+    await t.rollback();
+    res.status(500).json({
+      success: false, 
+      message: "Server error", 
+      error });
+  }
+};
+
+export const getAllWithdrawRequests = async (req: Request, res: Response) => {
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
+  const offset = (page - 1) * limit;
+  const status = req.query.status as string; 
+
+  try {
+    const whereCondition = status ? { status } : {};
+
+    const { count, rows } = await WithdrawRequest.findAndCountAll({
+      where: whereCondition,
+      limit,
+      offset,
+      order: [['createdAt', 'DESC']],
+      include: [
+        {
+          model: Affiliate,
+          include: [
+            {
+              model: User,
+              attributes: ['id', 'name', 'email'] 
+            }
+          ]
+        }
+      ]
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        requests: rows,
+        pagination: {
+          totalItems: count,
+          currentPage: page,
+          totalPages: Math.ceil(count / limit)
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server Error", error });
+  }
+};
+
+export const approveWithdraw = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const file = req.file;
+
+  if (!file) {
+    return res.status(400).json({ success: false, message: "Bukti transfer wajib diupload." });
+  }
+
+  const t = await sequelize.transaction();
+
+  try {
+    const withdrawRequest = await WithdrawRequest.findByPk(id);
+
+    if (!withdrawRequest) {
+      await t.rollback();
+      return res.status(404).json({ success: false, message: "Request tidak ditemukan." });
+    }
+
+    if (withdrawRequest.status !== 'Pending') {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: `Request sudah ${withdrawRequest.status}` });
+    }
+
+    const uploadResult = await storageService.uploadFile(file, "withdraw-proofs");
+
+    await withdrawRequest.update({
+      status: 'Approved',
+      proofImageKey: uploadResult.key, 
+    }, { transaction: t });
+    
+    await t.commit();
+    res.status(200).json({ success: true, message: "Withdrawal disetujui.", data: withdrawRequest });
+
+  } catch (error) {
+    await t.rollback();
+    res.status(500).json({ success: false, message: "Server Error", error });
+  }
+};
+
+export const rejectWithdraw = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const t = await sequelize.transaction();
+
+  try {
+    const withdrawRequest = await WithdrawRequest.findByPk(id);
+    if (!withdrawRequest) {
+      await t.rollback();
+      return res.status(404).json({ success: false, message: "Request tidak ditemukan." });
+    }
+
+    if (withdrawRequest.status !== 'Pending') {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: `Request sudah ${withdrawRequest.status}` });
+    }
+
+    await withdrawRequest.update({ status: 'Rejected' }, { transaction: t });
+    const affiliate = await Affiliate.findByPk(withdrawRequest.affiliateId);
+    if (affiliate) {
+        await affiliate.increment('totalCommission', { 
+            by: withdrawRequest.amount, 
+            transaction: t 
+        });
+    }
+
+    await t.commit();
+
+    res.status(200).json({ success: true, message: "Withdrawal ditolak & saldo dikembalikan." });
+
+  } catch (error) {
+    await t.rollback();
+    res.status(500).json({ success: false, message: "Server Error", error });
   }
 };
 
@@ -185,15 +351,11 @@ export const updateForAffiliate = async (req: AuthRequest, res: Response) => {
     }
 
     await affiliateUser?.update({
-      bankType: bankType ? affiliateUser.bankType : bankType,
-      nameOnAccount: nameOnAccount
-        ? affiliateUser.nameOnAccount
-        : nameOnAccount,
-      accountNumber: accountNumber
-        ? affiliateUser.accountNumber
-        : accountNumber,
-      bankBookImageUrl: imageUrl ? imageUrl : affiliateUser.bankBookImageUrl,
-      bankBookImageKey: imageUrl ? imageKey : affiliateUser.bankBookImageKey,
+      bankType: bankType || affiliateUser.bankType,
+      nameOnAccount: nameOnAccount || affiliateUser.nameOnAccount,
+      accountNumber: accountNumber || affiliateUser.accountNumber,
+      bankBookImageUrl: imageUrl || affiliateUser.bankBookImageUrl,
+      bankBookImageKey: imageKey || affiliateUser.bankBookImageKey,
     });
 
     const formatedAffilaite: AffilateResponse = {
@@ -213,6 +375,130 @@ export const updateForAffiliate = async (req: AuthRequest, res: Response) => {
       status: false,
       message: "Terjadi kesalahan pada server.",
       data: config.nodeEnv === "development" ? error : undefined,
+    });
+  }
+};
+
+export const getMyAffiliateData = async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id;
+  try {
+    const affiliate = await Affiliate.findOne({ where: { userId } });
+
+    if (!affiliate) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Data affiliate tidak ditemukan" });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...affiliate.dataValues,
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error", error });
+  }
+};
+
+export const getCommissionHistory = async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id;
+  
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
+  const offset = (page - 1) * limit;
+
+  try {
+    const affiliate = await Affiliate.findOne({ where: { userId } });
+    if (!affiliate) return res.status(404).json({ message: "Affiliate not found" });
+
+    const { count, rows: commissions } = await AffiliateCommission.findAndCountAll({
+      where: { affiliateId: affiliate.id },
+      order: [['createdAt', 'DESC']],
+      limit: limit,
+      offset: offset
+    });
+
+    const allCommissions = await AffiliateCommission.findAll({
+        attributes: ['purchaseValue'],
+        where: { affiliateId: affiliate.id }
+    });
+    const totalPurchaseValue = allCommissions.reduce((sum, item) => sum + item.purchaseValue, 0);
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        summary: {
+            totalOrders: count,
+            totalPurchaseValue,
+            currentBalance: affiliate.totalCommission
+        },
+        history: commissions,
+        pagination: {
+            currentPage: page,
+            totalPages: Math.ceil(count / limit),
+            totalItems: count
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Terjadi kesalahan pada server.",
+      data: error,
+    });
+  }
+};
+
+export const requestWithdraw = async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id;
+  const { amount } = req.body;
+
+  const t = await sequelize.transaction();
+
+  try {
+    const affiliate = await Affiliate.findOne({ where: { userId } });
+    if (!affiliate) {
+        await t.rollback();
+        return res.status(404).json({ message: "Affiliate not found" });
+    }
+
+    if (affiliate.totalCommission < Number(amount)) {
+        await t.rollback();
+        return res.status(400).json({ message: "Saldo tidak mencukupi" });
+    }
+    
+    if (Number(amount) < 10000) {
+        await t.rollback();
+        return res.status(400).json({ message: "Minimal penarikan adalah Rp 10.000" });
+    }
+
+    const withdraw = await WithdrawRequest.create({
+        affiliateId: affiliate.id,
+        amount: Number(amount),
+        status: 'Pending'
+    }, { transaction: t });
+
+    await affiliate.decrement('totalCommission', { by: Number(amount), transaction: t });
+    await t.commit();
+    await affiliate.reload(); 
+
+    res.status(201).json({ 
+        success: true, 
+        message: "Permintaan withdraw berhasil dibuat.", 
+        data: {
+            withdraw,
+            remainingBalance: affiliate.totalCommission
+        }
+    });
+
+  } catch (error) {
+    await t.rollback();
+    
+    res.status(500).json({
+      success: false,
+      message: "Terjadi kesalahan pada server.",
+      data: error,
     });
   }
 };

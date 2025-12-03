@@ -21,8 +21,16 @@ router.post(
   "/affiliate", 
   isAuthenticated, 
   upload.fields([{ name: "bankBookImage", maxCount: 1 }]),
-  requestAffiliate);
-router.put("/affiliate", isAuthenticated, isAffiliate, updateForAffiliate);
+  requestAffiliate
+);
+
+router.put(
+  "/affiliate", 
+  isAuthenticated, 
+  isAffiliate, 
+  upload.fields([{ name: "bankBookImage", maxCount: 1 }]),
+  updateForAffiliate
+);
 
 // User profile routes
 router.get("/me", isAuthenticated, getProfile);

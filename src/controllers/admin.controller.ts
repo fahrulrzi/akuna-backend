@@ -215,6 +215,7 @@ export const getOrder = async (req: AuthRequest, res: Response) => {
 
       products: productsData.map((p: any) => ({
         productName: p.productName,
+        image: (p.images && p.images.length > 0) ? p.images[0] : null,
         price: Number(p.price),
         quantity: Number(p.quantity),
         total: Number(p.price) * Number(p.quantity),
