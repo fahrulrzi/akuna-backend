@@ -196,6 +196,7 @@ export const getOrder = async (req: AuthRequest, res: Response) => {
           : "N/A",
         paymentMethod: t.paymentType || "Manual",
         status: t.status,
+        deliveryStatus: t.deliveryStatus,
         trackingId: t.trackingId,
         resi: t.courierResi,
       },
