@@ -384,3 +384,66 @@ export const getTracking = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const createDeliveryOrder = async (req: Request, res: Response) => {
+  const { orderId } = req.body;
+  if (!orderId) {
+    return res.status(400).json({
+      success: false,
+      message: "Parameter orderId diperlukan.",
+      data: null,
+    });
+  }
+  try {
+    const transaction = await Transaction.findOne({
+      where: { orderId },
+    });
+
+    if (!transaction) {
+      return res.status(404).json({
+        success: false,
+        message: "Transaksi tidak ditemukan.",
+        data: null,
+      });
+    }
+
+    if (transaction.status !== "success") {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Hanya transaksi dengan status 'success' yang dapat dibuatkan order pengiriman.",
+        data: null,
+      });
+    }
+
+    const deliveryData = await biteshipClient.createOrder(
+      transaction.shippingDetails
+    );
+
+    if (deliveryData.success === true) {
+      await transaction.update({
+        trackingId: deliveryData.courier.tracking_id,
+        courierResi: deliveryData.courier.waybill_id,
+        deliveryStatus: "ready_for_pickup",
+      });
+
+      return res.status(201).json({
+        success: true,
+        message: "Order pengiriman berhasil dibuat.",
+        data: deliveryData.data,
+      });
+    } else {
+      return res.status(500).json({
+        success: false,
+        message: "Gagal membuat order pengiriman.",
+        data: deliveryData,
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Terjadi kesalahan pada server.=" + error,
+      data: error,
+    });
+  }
+};

@@ -6,6 +6,11 @@ export const settingsSeeder = async () => {
     { key: "max_affiliate_payout", value: "500000" },
     { key: "min_withdrawal", value: "50000" },
     { key: "postal_code", value: "55281" },
+    {
+      key: "address",
+      value:
+        "Yogyakarta, IndonesiaKledokan CT XIX blok C no 14 Depok, Tempel, Caturtunggal, Kec. Depok, Kabupaten Sleman, Daerah Istimewa Yogyakarta 55281",
+    },
   ];
 
   for (const settings of defaultSettings) {

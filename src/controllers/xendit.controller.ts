@@ -8,6 +8,7 @@ import { config } from "../config/index.js";
 import { Setting } from "../models/Setting.js";
 import {
   BiteshipRatesResponse,
+  shippingDetail,
   ShippingDetails,
   ShippingItems,
 } from "../types/delivery.type.js";
@@ -21,25 +22,6 @@ const generateExternalId = (): string => {
 
 interface AuthRequest extends Request {
   user?: { id: number; role: string };
-}
-
-interface shippingDetail {
-  origin_contact_name: string;
-  origin_contact_phone: string;
-  origin_contact_email: string;
-  origin_address: string;
-  origin_note?: string;
-  origin_postal_code: number;
-  destination_contact_name: string;
-  destination_contact_phone: string;
-  destination_contact_email: string;
-  destination_address: string;
-  destination_postal_code: number;
-  destination_note?: string;
-  courier_company: string;
-  courier_type: string;
-  delivery_type: string;
-  items: ShippingItems[];
 }
 
 // Create Invoice (Payment)
@@ -154,6 +136,10 @@ export const createXenditInvoice = async (req: AuthRequest, res: Response) => {
       where: { key: "postal_code" },
     });
 
+    const addressSetting = await Setting.findOne({
+      where: { key: "address" },
+    });
+
     const payloadShipping: ShippingDetails = {
       origin_postal_code: parseInt(originPostalCode?.value || "55281"),
       destination_postal_code: parseInt(postal_code || "55281"),
@@ -187,6 +173,7 @@ export const createXenditInvoice = async (req: AuthRequest, res: Response) => {
         resItem.courier_code === courier_code &&
         resItem.shipping_type === "parcel" &&
         resItem.type === type &&
+        resItem.company === courier_company &&
         resItem.available_collection_method.includes("pickup")
       ) {
         shipping_cost = resItem.price;
@@ -194,7 +181,9 @@ export const createXenditInvoice = async (req: AuthRequest, res: Response) => {
           origin_contact_name: "Akuna Store",
           origin_contact_phone: "081222225862",
           origin_contact_email: "akuna@gmail.com", //! jangan lupa diganti pake settings
-          origin_address: "Jl. Example No.123, Yogyakarta",
+          origin_address:
+            addressSetting?.value ||
+            "Kledokan CT XIX blok C no 14 Depok, Tempel, Caturtunggal, Kec. Depok, Kabupaten Sleman, Daerah Istimewa Yogyakarta 55281",
           origin_postal_code: parseInt(originPostalCode?.value || "55281"),
           destination_contact_name: user.name,
           destination_contact_phone: (user as any).phone || "081234567890",
@@ -220,6 +209,8 @@ export const createXenditInvoice = async (req: AuthRequest, res: Response) => {
 
     // Generate external ID
     const externalId = generateExternalId();
+
+    shippingDetails.reference_id = externalId;
 
     // Prepare invoice data
     const invoiceData: any = {

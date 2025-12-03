@@ -5,9 +5,11 @@ import {
   handleBiteshipWebhook,
   getTracking,
   searchAreas,
+  createDeliveryOrder,
 } from "../controllers/delivery.controller.js";
 import { isAuthenticated } from "../middlewares/auth.middleware.js";
 import express from "express";
+import { isAdmin } from "../middlewares/admin.middleware.js";
 
 const router = Router();
 
@@ -21,5 +23,6 @@ router.post(
   handleBiteshipWebhook
 );
 router.get("/trackings/:id", isAuthenticated, getTracking);
+router.post("/create-shipping", isAuthenticated, isAdmin, createDeliveryOrder);
 
 export default router;

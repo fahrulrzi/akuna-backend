@@ -11,7 +11,7 @@ interface AuthRequest extends Request {
 export const getAllBuyer = async (_req: AuthRequest, res: Response) => {
   try {
     const users = await User.findAll({
-      attributes: ["id", "name", "email", "role"],
+      attributes: ["id", "name", "email", "role", "phone"],
       where: {
         role: UserRole.BUYER,
       },

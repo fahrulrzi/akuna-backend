@@ -67,3 +67,23 @@ export interface BiteshipRatesResponse {
   destination: BiteshipLocation;
   pricing: BiteshipPricingItem[];
 }
+
+export interface shippingDetail {
+  origin_contact_name: string;
+  origin_contact_phone: string;
+  origin_contact_email: string;
+  origin_address: string;
+  origin_note?: string;
+  reference_id?: string;
+  origin_postal_code: number;
+  destination_contact_name: string;
+  destination_contact_phone: string;
+  destination_contact_email: string;
+  destination_address: string;
+  destination_postal_code: number;
+  destination_note?: string;
+  courier_company: string;
+  courier_type: string;
+  delivery_type: string;
+  items: ShippingItems[];
+}
