@@ -85,16 +85,22 @@ export class Transaction extends Model {
   })
   declare snapRedirectUrl: string;
 
-@Column({
+  @Column({
     type: DataType.DECIMAL(10, 2),
   })
   declare shippingCost: number;
 
   @Column({
-    type: DataType.JSON, 
+    type: DataType.JSON,
     allowNull: true,
   })
   declare shippingDetails: object;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+  })
+  declare biteshipId: string;
 
   @Column({
     type: DataType.STRING,

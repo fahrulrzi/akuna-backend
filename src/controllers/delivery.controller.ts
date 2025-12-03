@@ -422,6 +422,7 @@ export const createDeliveryOrder = async (req: Request, res: Response) => {
 
     if (deliveryData.success === true) {
       await transaction.update({
+        biteshipId: deliveryData.id,
         trackingId: deliveryData.courier.tracking_id,
         courierResi: deliveryData.courier.waybill_id,
         deliveryStatus: "ready_for_pickup",
