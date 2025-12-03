@@ -330,6 +330,7 @@ export const handleXenditCallback = async (req: Request, res: Response) => {
     // Update transaction
     await transaction.update({
       status: newStatus,
+      deliveryStatus: newStatus === "success" ? "packing" : transaction.deliveryStatus,
       paymentType: data.payment_method || data.payment_channel,
     });
 
