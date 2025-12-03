@@ -21,6 +21,18 @@ interface ShippingRatesResponse {
   type?: string;
 }
 
+function parseJsonBuffer(buf: Buffer | undefined): any {
+  if (!buf) return {};
+  const raw = Buffer.isBuffer(buf) ? buf.toString("utf8") : String(buf);
+  if (!raw || raw.trim() === "") return {};
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    console.warn("Biteship webhook: invalid JSON body", err);
+    return {};
+  }
+}
+
 export const searchAreas = async (req: Request, res: Response) => {
   const { query } = req.query as { query: string };
 
@@ -268,36 +280,116 @@ export const getRates = async (req: Request, res: Response) => {
 //   }
 // };
 
+//! export const handleBiteshipWebhook = async (req: Request, res: Response) => {
+//!   console.log("Received Biteship Webhook:", JSON.stringify(req.body, null, 2));
+//!   try {
+//!     const { order_id, status } = req.body;
+//!     console.log(`🔔 Webhook Biteship: ${order_id} is now ${status}`);
+
+//!     const transaction = await Transaction.findOne({
+//!       where: { trackingId: order_id },
+//!     });
+
+//     if (!transaction) {
+//       return res.status(200).json({ success: true });
+//     }
+
+//     await transaction.update({
+//       deliveryStatus: status,
+//     });
+
+//     if (status === "delivered") {
+//       if (transaction.status !== "success") {
+//         await transaction.update({ status: "success" });
+//         console.log(`🎉 Order ${transaction.orderId} COMPLETED (Delivered).`);
+//       }
+//     } else if (status === "picked_up" || status === "on_delivery") {
+//     }
+
+//     return res.status(200).json({ success: true });
+//   } catch (error) {
+//     console.error("Webhook Error:", error);
+//     return res.status(500).json({ success: false });
+//   }
+// };
+
 export const handleBiteshipWebhook = async (req: Request, res: Response) => {
-  console.log("Received Biteship Webhook:", JSON.stringify(req.body, null, 2));
+  const rawBuf = req.body as Buffer | undefined;
+  const payload = parseJsonBuffer(rawBuf);
+
+  console.log("Biteship raw headers:", req.headers);
+  console.log("Received Biteship raw length:", rawBuf ? rawBuf.length : 0);
+  console.log("Parsed Biteship payload:", JSON.stringify(payload, null, 2));
+
+  if (!rawBuf || rawBuf.length === 0 || Object.keys(payload).length === 0) {
+    return res.status(200).send("ok");
+  }
+
   try {
-    const { order_id, status } = req.body;
-    console.log(`🔔 Webhook Biteship: ${order_id} is now ${status}`);
+    const trackingId =
+      payload.tracking_id ??
+      payload.order_id ??
+      payload.reference ??
+      payload.data?.tracking_id ??
+      payload.data?.attributes?.tracking_id ??
+      payload.data?.reference;
+
+    const status =
+      payload.status ??
+      payload.data?.status ??
+      payload.data?.attributes?.status ??
+      payload.event ??
+      payload.type;
+
+    console.log(
+      `Webhook Biteship received. trackingId=${trackingId}, status=${status}`
+    );
+
+    if (!trackingId) {
+      console.warn("Biteship webhook: no tracking id found; ignoring");
+      return res.status(200).send("ok");
+    }
+
+    const trackingIdStr = String(trackingId);
 
     const transaction = await Transaction.findOne({
-      where: { trackingId: order_id },
+      where: { trackingId: trackingIdStr },
     });
 
     if (!transaction) {
-      return res.status(200).json({ success: true });
+      console.warn(
+        `Biteship webhook: no transaction found for trackingId=${trackingIdStr}`
+      );
+      return res.status(200).send("ok");
     }
 
-    await transaction.update({
-      deliveryStatus: status,
-    });
+    const deliveryStatus = String(status || "").toLowerCase();
 
-    if (status === "delivered") {
+    if (transaction.deliveryStatus !== deliveryStatus) {
+      await transaction.update({ deliveryStatus });
+      console.log(
+        `Updated transaction(${transaction.id}).deliveryStatus => ${deliveryStatus}`
+      );
+    } else {
+      console.log(
+        `No deliveryStatus change for transaction(${transaction.id})`
+      );
+    }
+
+    if (deliveryStatus === "delivered" || deliveryStatus === "completed") {
       if (transaction.status !== "success") {
         await transaction.update({ status: "success" });
-        console.log(`🎉 Order ${transaction.orderId} COMPLETED (Delivered).`);
+        console.log(
+          `Order ${transaction.orderId} marked success due to delivery`
+        );
       }
-    } else if (status === "picked_up" || status === "on_delivery") {
     }
 
-    return res.status(200).json({ success: true });
-  } catch (error) {
-    console.error("Webhook Error:", error);
-    return res.status(500).json({ success: false });
+    // respond OK quickly
+    return res.status(200).send("ok");
+  } catch (err) {
+    console.error("Webhook Error:", err);
+    return res.status(200).send("ok");
   }
 };
 

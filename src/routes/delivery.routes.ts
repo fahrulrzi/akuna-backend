@@ -1,20 +1,25 @@
 import { Router } from "express";
-import { 
-  getRates, 
-  // addOrder, 
+import {
+  getRates,
+  // addOrder,
   handleBiteshipWebhook,
   getTracking,
-  searchAreas
+  searchAreas,
 } from "../controllers/delivery.controller.js";
 import { isAuthenticated } from "../middlewares/auth.middleware.js";
+import express from "express";
 
 const router = Router();
 
-router.get("/areas", searchAreas); 
+router.get("/areas", isAuthenticated, searchAreas);
 
-router.post("/rates", getRates);
+router.post("/rates", isAuthenticated, getRates);
 // router.post("/orders", isAuthenticated, addOrder);
-router.post("/callback", handleBiteshipWebhook);
-router.get("/trackings/:id", getTracking);
+router.post(
+  "/callback",
+  express.raw({ type: "application/json", limit: "1mb" }),
+  handleBiteshipWebhook
+);
+router.get("/trackings/:id", isAuthenticated, getTracking);
 
 export default router;
