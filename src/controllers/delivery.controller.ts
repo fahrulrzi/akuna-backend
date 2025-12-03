@@ -320,7 +320,7 @@ export const handleBiteshipWebhook = async (req: Request, res: Response) => {
     const trackingIdStr = String(trackingId);
 
     const transaction = await Transaction.findOne({
-      where: { trackingId: trackingIdStr },
+      where: { biteshipId: trackingIdStr },
     });
 
     if (!transaction) {
