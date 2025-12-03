@@ -1,8 +1,9 @@
 import type { Request, Response } from "express";
-import { User} from "../models/User.js";
+// import { User} from "../models/User.js";
 import { Transaction } from "../models/Transaction.js";
 import { TransactionItem } from "../models/TransactionItem.js";
 import { Product } from "../models/Product.js";
+import { biteshipClient } from "../utils/biteship.js";
 
 interface AuthRequest extends Request {
   user?: { id: number; role: string };
@@ -83,101 +84,117 @@ export const getUserOrderDetail = async (req: AuthRequest, res: Response) => {
   try {
     const transaction = await Transaction.findOne({
       where: { orderId, userId },
-      include: [
-        {
-          model: User,
-          attributes: [
-            "id",
-            "name",
-            "email",
-            "phone",
-            "address",
-            "city",
-            "state",
-            "postcode",
-            "country",
-            "addressFirstName",
-            "addressLastName",
-          ],
-        },
-        {
-          model: TransactionItem,
-          as: "items",
-          required: false,
-        },
-      ],
     });
 
     if (!transaction) {
-      return res.status(404).json({
-        success: false,
-        message: "Pesanan tidak ditemukan.",
-      });
+      return res.status(404).json({ success: false, message: "Pesanan tidak ditemukan." });
     }
 
     const t: any = transaction;
 
-    let productsList = [];
-    if (t.items && (t.items || []).length > 0) {
-      productsList = t.items.map((it: any) => ({
-        productName: it.productName,
-        quantity: it.quantity,
-        price: Number(it.price),
-        total: Number(it.subtotal),
-      }));
-    } else if (t.products && (t.products || []).length > 0) {
-      productsList = t.products.map((p: any) => ({
-        productName: p.productName,
-        quantity: p.quantity,
-        price: p.price,
-        total: p.price * p.quantity,
-      }));
-    }
-
+    const productsData = t.products || [];
     const productsWithImages = await Promise.all(
-      productsList.map(async (prod: any) => {
-        let productId = null;
-        if (t.items && (t.items || []).length > 0) {
-          const item = t.items.find((it: any) => it.productName === prod.productName);
-          productId = item?.productId;
-        } else if (t.products && (t.products || []).length > 0) {
-          const product = t.products.find((p: any) => p.productName === prod.productName);
-          productId = product?.productId;
-        }
-
-        let image = null;
-        if (productId) {
-          const product = await Product.findByPk(productId, {
+      productsData.map(async (prod: any) => {
+        const productDb = await Product.findByPk(prod.productId, {
             attributes: ["images"],
-          });
-          image = product?.images?.[0] ?? null;
-        }
-
+        });
         return {
-          ...prod,
-          image,
+          productName: prod.productName,
+          quantity: prod.quantity,
+          price: Number(prod.price),
+          total: Number(prod.price) * Number(prod.quantity),
+          image: productDb?.images?.[0] ?? null,
         };
       })
     );
 
-    const totalAmount = productsWithImages.reduce((sum: number, p: any) => sum + Number(p.total), 0);
+    const shipDetails = t.shippingDetails || {};
+    const recipient = shipDetails.recipient || {};
+    const shipping = shipDetails.shipping || {};
+
+    let timeline = [];
+
+    timeline.push({
+        date: t.createdAt,
+        title: "Idle",
+        description: "Pesanan berhasil dibuat. Menunggu pembayaran.",
+        active: true
+    });
+
+    if (t.status === 'success') {
+        timeline.push({
+            date: t.updatedAt, 
+            title: "Order Placed",
+            description: "Pembayaran telah diterima.",
+            active: true
+        });
+    }
+
+    const packingPhases = ['packing', 'packed', 'ready_to_ship', 'shipped', 'on_delivery', 'delivered', 'picked_up'];
+    if (packingPhases.includes(t.deliveryStatus)) {
+        timeline.push({
+            date: t.updatedAt, 
+            title: "Packing Order",
+            description: "Pesanan sedang dikemas.",
+            active: true
+        });
+    }
+
+    const packedPhases = ['packed', 'ready_to_ship', 'shipped', 'on_delivery', 'delivered', 'picked_up'];
+    if (packedPhases.includes(t.deliveryStatus)) {
+         timeline.push({
+            date: t.updatedAt, 
+            title: "Order Packed",
+            description: "Pesanan selesai dikemas.",
+            active: true
+        });
+    }
+
+    if (t.trackingId) {
+        try {
+            const trackingRes = await biteshipClient.getTracking(t.trackingId);
+            const biteshipHistory = trackingRes.history.map((hist: any) => ({
+                date: hist.updated_at,
+                title: mapBiteshipStatus(hist.status), 
+                description: hist.note,
+                active: true
+            }));
+            
+            timeline = [...biteshipHistory.reverse(), ...timeline]; 
+
+        } catch (error) {
+            console.error("Gagal ambil tracking biteship:", error);
+             if (t.deliveryStatus !== 'packing' && t.deliveryStatus !== 'packed') {
+                 timeline.unshift({
+                    date: new Date(),
+                    title: "Shipping Info",
+                    description: `Resi: ${t.courierResi}. Cek manual untuk update.`,
+                    active: true
+                });
+             }
+        }
+    }
 
     const response = {
       orderId: t.orderId,
-      shippingAddress: {
-        fullName: t.user?.name ?? null,
-        phone: (t.user as any)?.phone ?? null,
-        email: t.user?.email ?? null,
-        address: (t.user as any)?.address ?? null,
-        city: (t.user as any)?.city ?? null,
-        state: (t.user as any)?.state ?? null,
-        postcode: (t.user as any)?.postcode ?? null,
-        country: (t.user as any)?.country ?? null,
-      },
-      products: productsWithImages,
-      total: totalAmount,
-      snapRedirectUrl: t.snapRedirectUrl,
       status: t.status,
+      deliveryStatus: t.deliveryStatus,
+      
+      shippingAddress: {
+	      fullName: recipient.name,
+        phone: recipient.phone,
+        email: recipient.email,
+        address: recipient.address,
+        postcode: recipient.postal_code,
+      },
+      
+      products: productsWithImages,
+      
+      total: Number(t.totalAmount), 
+      shippingCost: Number(t.shippingCost),
+      
+      snapRedirectUrl: t.snapRedirectUrl,
+      timeline: timeline
     };
 
     return res.status(200).json({
@@ -193,3 +210,16 @@ export const getUserOrderDetail = async (req: AuthRequest, res: Response) => {
   }
 };
 
+function mapBiteshipStatus(status: string) {
+    switch (status) {
+        case 'confirmed': return 'Order Confirmed';
+        case 'allocated': return 'Courier Allocated';
+        case 'picking_up': return 'Picking Up';
+        case 'picked_up': return 'Picked Up';
+        case 'dropping_off': return 'Dropping Off';
+        case 'return_in_transit': return 'Return in Transit';
+        case 'on_delivery': return 'Out for Delivery';
+        case 'delivered': return 'Delivered';
+        default: return status.toUpperCase();
+    }
+}
