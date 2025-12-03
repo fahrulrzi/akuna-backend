@@ -37,7 +37,12 @@ const startServer = async () => {
 
     app.use(cors({ origin: "*" }));
 
-    app.post("/api/delivery/callback", handleBiteshipWebhook);
+    //! khusus biteship webhook
+    app.post(
+      "/api/delivery/callback",
+      express.raw({ type: () => true, limit: "1mb" }),
+      handleBiteshipWebhook
+    );
 
     // Middlewares
     app.use(express.json()); // Untuk parsing body JSON
