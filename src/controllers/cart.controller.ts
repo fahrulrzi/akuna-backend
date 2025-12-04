@@ -3,6 +3,7 @@ import { Cart } from "../models/Cart.js";
 import { CartItem } from "../models/CartItem.js";
 import { Product } from "../models/Product.js";
 import { config } from "../config/index.js";
+import { Affiliate } from "../models/Affiliate.js";
 
 interface AuthRequest extends Request {
   user?: { id: number; role: string };
@@ -41,7 +42,9 @@ const formatCartResponse = (cart: Cart | null) => {
   const formattedItems = items.map((item) => {
     const rawPrice = item.product?.price ?? 0;
     const numericPrice =
-      typeof rawPrice === "number" ? rawPrice : Number.parseFloat(rawPrice) || 0;
+      typeof rawPrice === "number"
+        ? rawPrice
+        : Number.parseFloat(rawPrice) || 0;
     const itemSubtotal = numericPrice * item.quantity;
     subtotal += itemSubtotal;
 
@@ -74,7 +77,7 @@ const formatCartResponse = (cart: Cart | null) => {
 export const addToCart = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
-    const { productId, quantity } = req.body;
+    const { productId, quantity, referralCode } = req.body;
 
     if (!userId) {
       return res.status(401).json({
@@ -131,7 +134,7 @@ export const addToCart = async (req: AuthRequest, res: Response) => {
 
     if (existingCartItem) {
       const newQuantity = existingCartItem.quantity + quantity;
-      
+
       if (product.stock < newQuantity) {
         return res.status(400).json({
           success: false,
@@ -141,6 +144,25 @@ export const addToCart = async (req: AuthRequest, res: Response) => {
       }
 
       existingCartItem.quantity = newQuantity;
+      if (
+        referralCode &&
+        referralCode !== existingCartItem.referralCode &&
+        referralCode !== ""
+      ) {
+        const referralAffiliate = await Affiliate.findOne({
+          where: { referralCode },
+        });
+
+        if (!referralAffiliate) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid referral code.",
+            data: null,
+          });
+        }
+        existingCartItem.referralCode = referralCode;
+      }
+
       await existingCartItem.save();
 
       const updatedCart = await Cart.findByPk(cart.id, {
@@ -241,7 +263,14 @@ export const getCart = async (req: AuthRequest, res: Response) => {
             {
               model: Product,
               as: "product",
-              attributes: ["id", "name", "price", "stock", "images", "description"],
+              attributes: [
+                "id",
+                "name",
+                "price",
+                "stock",
+                "images",
+                "description",
+              ],
             },
           ],
         },
@@ -349,7 +378,14 @@ export const updateCartItem = async (req: AuthRequest, res: Response) => {
             {
               model: Product,
               as: "product",
-              attributes: ["id", "name", "price", "stock", "images", "description"],
+              attributes: [
+                "id",
+                "name",
+                "price",
+                "stock",
+                "images",
+                "description",
+              ],
             },
           ],
         },
@@ -423,7 +459,14 @@ export const removeCartItem = async (req: AuthRequest, res: Response) => {
             {
               model: Product,
               as: "product",
-              attributes: ["id", "name", "price", "stock", "images", "description"],
+              attributes: [
+                "id",
+                "name",
+                "price",
+                "stock",
+                "images",
+                "description",
+              ],
             },
           ],
         },
@@ -497,4 +540,3 @@ export const clearCart = async (req: AuthRequest, res: Response) => {
     });
   }
 };
-

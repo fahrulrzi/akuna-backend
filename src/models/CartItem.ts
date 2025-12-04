@@ -8,6 +8,7 @@ import {
 } from "sequelize-typescript";
 import { Cart } from "./Cart.js";
 import { Product } from "./Product.js";
+import { Affiliate } from "./Affiliate.js";
 
 @Table({
   tableName: "cart_items",
@@ -45,10 +46,19 @@ export class CartItem extends Model {
   })
   declare quantity: number;
 
+  @ForeignKey(() => Affiliate)
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+  })
+  declare referralCode: string | null;
+
   @BelongsTo(() => Cart, "cartId")
   cart!: Cart;
 
   @BelongsTo(() => Product, "productId")
   product!: Product;
-}
 
+  @BelongsTo(() => Affiliate, "referralCode")
+  affiliate!: Affiliate | null;
+}
