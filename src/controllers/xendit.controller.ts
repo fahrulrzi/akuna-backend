@@ -33,6 +33,13 @@ export const createXenditInvoice = async (req: AuthRequest, res: Response) => {
     const {
       products,
       payment_methods,
+      name,
+      phone,
+      email,
+      address,
+      city_state,
+      province,
+      country,
       postal_code,
       courier_code,
       courier_company,
@@ -129,13 +136,13 @@ export const createXenditInvoice = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    if (user.address === null || (user as any).phone === null) {
-      return res.status(400).json({
-        sucess: false,
-        message:
-          "Please complete your address and phone number on profile before creating an invoice.",
-      });
-    }
+    // if (user.address === null || (user as any).phone === null) {
+    //   return res.status(400).json({
+    //     sucess: false,
+    //     message:
+    //       "Please complete your address and phone number on profile before creating an invoice.",
+    //   });
+    // }
 
     const originPostalCode = await Setting.findOne({
       where: { key: "postal_code" },
@@ -190,10 +197,10 @@ export const createXenditInvoice = async (req: AuthRequest, res: Response) => {
             addressSetting?.value ||
             "Kledokan CT XIX blok C no 14 Depok, Tempel, Caturtunggal, Kec. Depok, Kabupaten Sleman, Daerah Istimewa Yogyakarta 55281",
           origin_postal_code: parseInt(originPostalCode?.value || "55281"),
-          destination_contact_name: user.name,
-          destination_contact_phone: (user as any).phone || "081234567890",
-          destination_contact_email: user.email,
-          destination_address: (user as any).address || "Jl. User Address",
+          destination_contact_name: name || (user as any).name || "User Name",
+          destination_contact_phone: phone || (user as any).phone || "081234567890",
+          destination_contact_email: email || (user as any).email || "",
+          destination_address: address || (user as any).address || "User Address",
           destination_postal_code: parseInt(postal_code || "55281"),
           courier_company: courier_company || "",
           courier_type: type,
@@ -253,23 +260,26 @@ export const createXenditInvoice = async (req: AuthRequest, res: Response) => {
     if (referralCode) {
       const affiliate = await Affiliate.findOne({ where: { referralCode } });
 
-      if (affiliate && affiliate.userId !== userId) {        
-        const COMMISSION_RATE = 0.1; 
+      if (affiliate && affiliate.userId !== userId) {
+        const COMMISSION_RATE = 0.1;
         const commissionValue = productTotalAmount * COMMISSION_RATE;
-        const summaryProductName = transactionProducts.length === 1 
-            ? transactionProducts[0].productName 
+        const summaryProductName =
+          transactionProducts.length === 1
+            ? transactionProducts[0].productName
             : `Order ${externalId} (${transactionProducts.length} Items)`;
 
         await AffiliateCommission.create({
           affiliateId: affiliate.id,
           orderId: externalId,
-          productName: summaryProductName, 
+          productName: summaryProductName,
           purchaseValue: productTotalAmount,
           commissionAmount: commissionValue,
-          status: 'Pending'
+          status: "Pending",
         });
 
-        console.log(`✅ Affiliate commission recorded for ${referralCode} - Status: Pending`);
+        console.log(
+          `✅ Affiliate commission recorded for ${referralCode} - Status: Pending`
+        );
       } else {
         console.log("Invalid referral code or self-referral detected.");
       }
@@ -359,23 +369,28 @@ export const handleXenditCallback = async (req: Request, res: Response) => {
     // Update transaction
     await transaction.update({
       status: newStatus,
-      deliveryStatus: newStatus === "success" ? "packing" : transaction.deliveryStatus,
+      deliveryStatus:
+        newStatus === "success" ? "packing" : transaction.deliveryStatus,
       paymentType: data.payment_method || data.payment_channel,
     });
 
     if (newStatus === "success") {
       const commission = await AffiliateCommission.findOne({
-        where: { orderId: externalId, status: 'Pending' }
+        where: { orderId: externalId, status: "Pending" },
       });
 
       if (commission) {
-         await commission.update({ status: 'Paid' });
+        await commission.update({ status: "Paid" });
 
-         const affiliate = await Affiliate.findByPk(commission.affiliateId);
-         if (affiliate) {
-            await affiliate.increment('totalCommission', { by: commission.commissionAmount });
-            console.log(`💰 Commission released: ${commission.commissionAmount} to Affiliate ID ${affiliate.id}`);
-         }
+        const affiliate = await Affiliate.findByPk(commission.affiliateId);
+        if (affiliate) {
+          await affiliate.increment("totalCommission", {
+            by: commission.commissionAmount,
+          });
+          console.log(
+            `💰 Commission released: ${commission.commissionAmount} to Affiliate ID ${affiliate.id}`
+          );
+        }
       }
     }
     // console.log(`✅ Transaction ${externalId} updated to ${newStatus}`);
